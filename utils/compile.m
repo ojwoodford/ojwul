@@ -576,3 +576,25 @@ str = sprintf('-I"%sinclude" -L"%slib" -lgflags', gflags_path_str, gflags_path_s
         good = exist(sprintf('%sinclude%sgflags%sgflags.h', gflags_path_str, filesep, filesep), 'file');
     end
 end
+
+% Add the Sophus include directory
+function [str, co] = sophus(debug)
+co = '';
+sophus_path_str = user_string('sophus_path');
+if ~check_path()
+    % Ask the user to enter the path
+    while 1
+        sophus_path_str = ask_user_for_directory('Sophus');
+        if check_path()
+            user_string('sophus_path', sophus_path_str);
+            break;
+        end
+    end
+end
+str = sprintf('-I"%s"', sophus_path_str(1:end-1));
+% Nested function
+    function good = check_path
+        % Check the path is valid
+        good = exist(sprintf('%ssophus%sse3.hpp', sophus_path_str, filesep), 'file');
+    end
+end
