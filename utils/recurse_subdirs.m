@@ -31,16 +31,18 @@ try
         varargout = cellfun(@(v) {{v}}, varargout);
     end
     fprintf('Successfully done: %s\n', base);
-catch
+catch me
+    fprintf(getReport(me));
 end
 % Go through sub directories
 for d = dir(base)'
     if d.isdir && d.name(1) ~= '.'
         % Do the recursion
+        name = sprintf('%s/%s', base, d.name);
         if nargout == 0
-            recurse_subdirs(func, sprintf('%s/%s', base, d.name));
+            recurse_subdirs(func, name);
         else
-            [v{1:nargout}] = recurse_subdirs(func, sprintf('%s/%s', base, d.name));
+            [v{1:nargout}] = recurse_subdirs(func, name);
             % Store the output
             if ~all(cellfun(@isempty, v))
                 if all(cellfun(@isempty, varargout))
