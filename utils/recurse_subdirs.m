@@ -24,8 +24,12 @@ end
 [varargout{1:nargout}] = deal({});
 % Run on this directory
 try
-    [varargout{1:nargout}] = func(base);
-    varargout = cellfun(@(v) {{v}}, varargout);
+    if nargout == 0
+        func(base);
+    else
+        [varargout{1:nargout}] = func(base);
+        varargout = cellfun(@(v) {{v}}, varargout);
+    end
     fprintf('Successfully done: %s\n', base);
 catch
 end
@@ -33,14 +37,18 @@ end
 for d = dir(base)'
     if d.isdir && d.name(1) ~= '.'
         % Do the recursion
-        [v{1:nargout}] = recurse_subdirs(func, sprintf('%s/%s', base, d.name));
-        % Store the output
-        if ~all(cellfun(@isempty, v))
-            if all(cellfun(@isempty, varargout))
-                varargout = v;
-            else
-                for a = 1:nargout
-                    varargout{a} = cat(2, varargout{a}, v{a});
+        if nargout == 0
+            recurse_subdirs(func, sprintf('%s/%s', base, d.name));
+        else
+            [v{1:nargout}] = recurse_subdirs(func, sprintf('%s/%s', base, d.name));
+            % Store the output
+            if ~all(cellfun(@isempty, v))
+                if all(cellfun(@isempty, varargout))
+                    varargout = v;
+                else
+                    for a = 1:nargout
+                        varargout{a} = cat(2, varargout{a}, v{a});
+                    end
                 end
             end
         end
