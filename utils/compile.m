@@ -598,3 +598,30 @@ str = sprintf('-I"%s"', sophus_path_str(1:end-1));
         good = exist(sprintf('%ssophus%sse3.hpp', sophus_path_str, filesep), 'file');
     end
 end
+
+% Add the liegroups library
+function [str, co] = liegroups(debug)
+co = '';
+liegroups_path_str = user_string('liegroups_path');
+if ~check_path()
+    % Ask the user to enter the path
+    while 1
+        liegroups_path_str = ask_user_for_directory('liegroups');
+        if check_path()
+            user_string('liegroups_path', liegroups_path_str);
+            break;
+        end
+    end
+end
+if debug
+    str = 'Debug';
+else
+    str = 'Release';
+end
+str = sprintf('-I"%s/.." -L"%s/build/%s" -lliegroups', liegroups_path_str, liegroups_path_str, str);
+% Nested function
+    function good = check_path
+        % Check the path is valid
+        good = exist(sprintf('%s/se3.hpp', liegroups_path_str), 'file');
+    end
+end
