@@ -625,3 +625,9 @@ str = sprintf('-I"%s/.." -L"%s/build/%s" -lliegroups', liegroups_path_str, liegr
         good = exist(sprintf('%s/se3.hpp', liegroups_path_str), 'file');
     end
 end
+
+% Add the ojwul include directory
+function [str, co] = ojwul(debug)
+co = '';
+str = sprintf('-I"%s"', fileparts(fileparts(mfilename('fullpath'))));
+end
