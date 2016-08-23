@@ -77,8 +77,11 @@ normals(faces(:,1),:) = N';
 % Render
 if nargin < 3
     colour = [0.5 0.5 0.5];
+elseif size(colour, 1) == size(P, 3) && size(colour, 2) == 3
+    colour = repmat(shiftdim(colour, -1), [nSegments+12 1 1]);
+    colour = reshape(colour, [], 3);
 end
-h = patch('Vertices', verts, 'Faces', faces, 'VertexNormals', normals, 'FaceColor', colour, 'EdgeColor', 'none', 'BackFaceLighting', 'reverselit', 'FaceLighting', 'flat');
+h = patch('Vertices', verts, 'Faces', faces, 'VertexNormals', normals, 'FaceVertexCData', colour, 'FaceColor', 'flat', 'EdgeColor', 'none', 'BackFaceLighting', 'reverselit', 'FaceLighting', 'flat');
 % hold on
 % verts = reshape(verts, nSegments+10,[], 3);
 % plot3([verts(nSegments+1,:,1); verts(end,:,1)], [verts(nSegments+1,:,2); verts(end,:,2)], [verts(nSegments+1,:,3); verts(end,:,3)], 'r-');
