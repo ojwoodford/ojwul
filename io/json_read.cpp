@@ -108,13 +108,13 @@ mxArray* recurse_json(const json &obj)
                 }
                 case json::value_t::number_unsigned:
                 case json::value_t::number_integer:
-                {
-                    out = mxCreateNumericMatrix(1, obj.size(), mxINT64_CLASS, mxREAL);
-                    int64_t* data = (int64_t*)mxGetData(out);
-                    for (it = obj.begin(); it != obj.end(); ++it)
-                        *data++ = it->get<int64_t>();
-                    break;
-                }
+//                 {
+//                     out = mxCreateNumericMatrix(1, obj.size(), mxINT64_CLASS, mxREAL);
+//                     int64_t* data = (int64_t*)mxGetData(out);
+//                     for (it = obj.begin(); it != obj.end(); ++it)
+//                         *data++ = it->get<int64_t>();
+//                     break;
+//                 }
                 case json::value_t::number_float:
                 {
                     out = mxCreateNumericMatrix(1, obj.size(), mxDOUBLE_CLASS, mxREAL);
@@ -135,13 +135,13 @@ mxArray* recurse_json(const json &obj)
             out = mxCreateLogicalScalar(mxLogical(obj.get<bool>()));
             break;
         case json::value_t::number_integer:
-            out = mxCreateNumericMatrix(1, 1, mxINT64_CLASS, mxREAL);
-            *((int64_t*)mxGetData(out)) = obj.get<int64_t>();
-            break;
+//             out = mxCreateNumericMatrix(1, 1, mxINT64_CLASS, mxREAL);
+//             *((int64_t*)mxGetData(out)) = obj.get<int64_t>();
+//             break;
         case json::value_t::number_unsigned:
-            out = mxCreateNumericMatrix(1, 1, mxUINT64_CLASS, mxREAL);
-            *((uint64_t*)mxGetData(out)) = obj.get<uint64_t>();
-            break;
+//             out = mxCreateNumericMatrix(1, 1, mxUINT64_CLASS, mxREAL);
+//             *((uint64_t*)mxGetData(out)) = obj.get<uint64_t>();
+//             break;
         case json::value_t::number_float:
             out = mxCreateDoubleScalar(double(obj.get<double>()));
             break;
