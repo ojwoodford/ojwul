@@ -1,6 +1,6 @@
 %RENDER_CAMERA Render 3D camera models, given projection matrices
 %
-%   h = render_camera(P, [scale, [colour])
+%   h = render_camera(P, [scale, [colour, [cam2world]])
 %
 % Render a set of cameras.
 %
@@ -8,11 +8,13 @@
 %   P - 3x4xN camera projection matrices.
 %   scale - scalar value indicating the size of the camera. Default: 1.
 %   colour - 1x3 colour value for the camera. Default: [0.5 0.5 0.5].
+%   cam2world - logical indicating whether P are given in camera to world
+%               coordinate frame forms. Default: false.
 %
 %OUT:
 %   h - handle to the patch object created.
 
-function h = render_camera(P, scale, colour)
+function h = render_camera(P, scale, colour, cam2world)
 
 % Create a cone
 % Vertices
@@ -54,8 +56,13 @@ if nargin > 0 && size(P, 1) == 3 && size(P, 2) == 4
     for a = 1:c
         % Extract extrinsics
         [K, R, t] = KR_from_P(P(:,:,a));
-        % Multiply vertices by inverse
-        verts(:,a,:) = reshape(V * [R; t'], [], 1, 3);
+        % Multiply vertices by camera projection matrix
+        if nargin < 4 || ~cam2world
+            P_ = [R; t'];
+        else
+            P_ = [R'; (R*-t)'];
+        end
+        verts(:,a,:) = reshape(V * P_, [], 1, 3);
     end
     verts = reshape(verts, [], 3);
     
