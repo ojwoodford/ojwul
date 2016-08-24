@@ -1,12 +1,14 @@
-function h = render_coordinate_frame(P)
+function h = render_coordinate_frame(P, cam2world)
 %RENDER_COORDINATE_FRAME Renders RGB coordinate frames given by P
 
+if nargin < 2 || ~cam2world
 % Invert the frames
 P(4,4,:) = 1;
 for a = 1:size(P, 3)
     P(:,:,a) = inv(P(:,:,a));
 end
 P = P(1:3,:,:);
+end
 
 % Plot the axes coordinates
 colour = {[0.8 0 0], [0 0.6 0], [0 0 0.9]};
