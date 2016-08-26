@@ -20,6 +20,15 @@ classdef lie
                         generators(3,1,5) = -1;
                         generators(1,2,6) = -1;
                         generators(2,1,6) = 1;
+                    case 'so3'
+                        % Generators for so3
+                        generators = zeros(3,3,3);
+                        generators(3,2,1) = 1;
+                        generators(2,3,1) = -1;
+                        generators(1,3,2) = 1;
+                        generators(3,1,2) = -1;
+                        generators(1,2,3) = -1;
+                        generators(2,1,3) = 1;
                     otherwise
                         error('Lie group not recognized');
                 end
@@ -29,10 +38,16 @@ classdef lie
             this.normalizers = 1 ./ sum(abs(this.G), 1)';
         end
         function tangent = log(this, transform)
-            tangent = sum(bsxfun(@times, reshape(logm(transform), [], 1), this.G), 1)' .* this.normalizers;
+            [~, ~, N] = size(transform);
+            for a = N:-1:1
+             tangent(:,a) = sum(bsxfun(@times, reshape(logm(transform(:,:,a)), [], 1), this.G), 1)' .* this.normalizers;
+            end
         end
         function transfom = exp(this, tangent)
-            transfom = expm(reshape(sum(bsxfun(@times, this.G, tangent'), 2), this.sz));
+            [~, N] = size(tangent);
+            for a = N:-1:1
+                transfom(:,:,N) = expm(reshape(sum(bsxfun(@times, this.G, tangent(:,a)'), 2), this.sz));
+            end
         end
         function Vq = interp1(this, X, V, Xq)
             for a = numel(X)-1:-1:1
