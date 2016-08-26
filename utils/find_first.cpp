@@ -23,7 +23,7 @@ FUNC(gteq, >=);
 FUNC(lt, <);
 FUNC(gt, >);
 
-template<typename T> static inline void wrapper_func(const T *A, const char *op, const T *val, int vs, const uint32_t *start, int ss, const int M, const int N, uint32_t *out)
+template<typename T> static inline void wrapper_func(const T *A, int as, const char *op, const T *val, int vs, const uint32_t *start, int ss, const int M, const int N, uint32_t *out)
 {   
     // Set the defaults
     T val_ = 0;
@@ -38,27 +38,27 @@ template<typename T> static inline void wrapper_func(const T *A, const char *op,
 	if (!strcmp(op, "~=")) {
 #pragma omp parallel for if (N > 1 && N * M > 1e6) num_threads(2) default(shared) private(i)
         for (i = 0; i < N; ++i)
-            out[i] = neq(&A[i*M], val[i&vs], M, start[i&ss]);
+            out[i] = neq(&A[(i*M)&as], val[i&vs], M, start[i&ss]);
     } else if (!strcmp(op, "==")) {
 #pragma omp parallel for if (N > 1 && N * M > 1e6) num_threads(2) default(shared) private(i)
         for (i = 0; i < N; ++i)
-            out[i] = eq(&A[i*M], val[i&vs], M, start[i&ss]);
+            out[i] = eq(&A[(i*M)&as], val[i&vs], M, start[i&ss]);
     } else if (!strcmp(op, "<=")) {
 #pragma omp parallel for if (N > 1 && N * M > 1e6) num_threads(2) default(shared) private(i)
         for (i = 0; i < N; ++i)
-            out[i] = lteq(&A[i*M], val[i&vs], M, start[i&ss]);
+            out[i] = lteq(&A[(i*M)&as], val[i&vs], M, start[i&ss]);
     } else if (!strcmp(op, ">=")) {
 #pragma omp parallel for if (N > 1 && N * M > 1e6) num_threads(2) default(shared) private(i)
         for (i = 0; i < N; ++i)
-            out[i] = gteq(&A[i*M], val[i&vs], M, start[i&ss]);
+            out[i] = gteq(&A[(i*M)&as], val[i&vs], M, start[i&ss]);
     } else if (!strcmp(op, "<")) {
 #pragma omp parallel for if (N > 1 && N * M > 1e6) num_threads(2) default(shared) private(i)
         for (i = 0; i < N; ++i)
-            out[i] = lt(&A[i*M], val[i&vs], M, start[i&ss]);
+            out[i] = lt(&A[(i*M)&as], val[i&vs], M, start[i&ss]);
     } else if (!strcmp(op, ">")) {
 #pragma omp parallel for if (N > 1 && N * M > 1e6) num_threads(2) default(shared) private(i)
         for (i = 0; i < N; ++i)
-            out[i] = gt(&A[i*M], val[i&vs], M, start[i&ss]);
+            out[i] = gt(&A[(i*M)&as], val[i&vs], M, start[i&ss]);
     } else
         mexErrMsgTxt("Comparison operator not recognized.");
 }
@@ -75,7 +75,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     const void *val = NULL;
     const uint32_t *start = NULL;
     char op[3] = {'~', '=', 0};
-    int vs = 0, ss = 0;
+    int as, vs = 0, ss = 0;
 
 	// Check argument types are valid
     if (!mxIsNumeric(prhs[0]) || mxIsComplex(prhs[0]))
@@ -87,12 +87,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         M = N;
         N = 1;
     }
+    as = N == 1 ? 0 : -1;
+    
     if (nrhs > 2) {
         if (mxGetString(prhs[1], op, 3))
             mexErrMsgTxt("operator is of unexpected type or size");
         vs = mxGetNumberOfElements(prhs[2]);
-        if (mxGetClassID(prhs[2]) != in_class || mxIsComplex(prhs[2]) || (vs != 1 && vs != N))
+        if (mxGetClassID(prhs[2]) != in_class || mxIsComplex(prhs[2]) || (vs != 1 && vs != N && N != 1))
             mexErrMsgTxt("value is of unexpected type or size");
+        if (N == 1)
+            N = vs;
         vs = vs == 1 ? 0 : -1;
         val = mxGetData(prhs[2]);
     }
@@ -114,31 +118,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	// Call the first wrapper function according to the input image type
 	switch (in_class) {
 		case mxDOUBLE_CLASS:
-			wrapper_func((const double *)A, op, (const double *)val, vs, start, ss, M, N, out);
+			wrapper_func((const double *)A, as, op, (const double *)val, vs, start, ss, M, N, out);
 			break;
 		case mxSINGLE_CLASS:
-			wrapper_func((const float *)A, op, (const float *)val, vs, start, ss, M, N, out);
+			wrapper_func((const float *)A, as, op, (const float *)val, vs, start, ss, M, N, out);
 			break;
 		case mxINT8_CLASS:
-			wrapper_func((const int8_t *)A, op, (const int8_t *)val, vs, start, ss, M, N, out);
+			wrapper_func((const int8_t *)A, as, op, (const int8_t *)val, vs, start, ss, M, N, out);
 			break;
 		case mxUINT8_CLASS:
-			wrapper_func((const uint8_t *)A, op, (const uint8_t *)val, vs, start, ss, M, N, out);
+			wrapper_func((const uint8_t *)A, as, op, (const uint8_t *)val, vs, start, ss, M, N, out);
 			break;
 		case mxINT16_CLASS:
-			wrapper_func((const int16_t *)A, op, (const int16_t *)val, vs, start, ss, M, N, out);
+			wrapper_func((const int16_t *)A, as, op, (const int16_t *)val, vs, start, ss, M, N, out);
 			break;
 		case mxUINT16_CLASS:
-			wrapper_func((const uint16_t *)A, op, (const uint16_t *)val, vs, start, ss, M, N, out);
+			wrapper_func((const uint16_t *)A, as, op, (const uint16_t *)val, vs, start, ss, M, N, out);
 			break;
 		case mxINT32_CLASS:
-			wrapper_func((const int32_t *)A, op, (const int32_t *)val, vs, start, ss, M, N, out);
+			wrapper_func((const int32_t *)A, as, op, (const int32_t *)val, vs, start, ss, M, N, out);
 			break;
 		case mxUINT32_CLASS:
-			wrapper_func((const uint32_t *)A, op, (const uint32_t *)val, vs, start, ss, M, N, out);
+			wrapper_func((const uint32_t *)A, as, op, (const uint32_t *)val, vs, start, ss, M, N, out);
 			break;
 		case mxLOGICAL_CLASS:
-			wrapper_func((const mxLogical *)A, op, (const mxLogical *)val, vs, start, ss, M, N, out);
+			wrapper_func((const mxLogical *)A, as, op, (const mxLogical *)val, vs, start, ss, M, N, out);
 			break;
 		default:
 			mexErrMsgTxt("A is of an unsupported type");
