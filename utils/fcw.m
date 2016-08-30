@@ -29,8 +29,8 @@
 %   modifiers - 1x3 numeric vector indicating which of the modifier keys
 %               (shift, ctrl, alt respectively) should be pressed (1), not
 %               pressed (0), or can be either (other value), for fcw to
-%               react to the button press. E.g. [0 1 NaN] indicates that
-%               fcw should react to the button press if and only if shift
+%               react to button/key presses. E.g. [0 1 NaN] indicates that
+%               fcw should react to button/key presses if and only if shift
 %               is not pressed and ctrl is pressed; alt is ignored.
 %               Default: [NaN NaN NaN] (i.e. react to all button presses).
 %   '-link' - Specify each axis in the figure to maintain the same pose
@@ -109,7 +109,7 @@ end
 % Initialize the callbacks
 set(fig, 'WindowButtonDownFcn', [{@fcw_mousedown, {str2func(['fcw_' buttons{1}]), str2func(['fcw_' buttons{2}]), str2func(['fcw_' buttons{3}])}, modifiers} prev_mousedown], ...
          'WindowButtonUpFcn', [{@fcw_mouseup} prev_mouseup], ...
-         'KeyPressFcn', [{@fcw_keypress} prev_keypress], ... 
+         'KeyPressFcn', [{@fcw_keypress, modifiers} prev_keypress], ... 
          'WindowScrollWheelFcn', [{@fcw_scroll, str2func(['fcw_' buttons{4}]), modifiers} prev_scroll], ...
          'BusyAction', 'cancel', 'UserData', link);
 if block
@@ -128,10 +128,10 @@ if block
 end
 end
 
-function fcw_keypress(src, eventData, varargin)
+function fcw_keypress(src, eventData, modifiers, varargin)
 fig = ancestor(src, 'figure');
 cax = get(fig, 'CurrentAxes');
-if isempty(cax)
+if isempty(cax) || modifiers() % Check the required modifiers were pressed, else do nothing
     % Call the other keypress callbacks
     if ~isempty(varargin)
         varargin{1}(src, eventData, varargin{2:end});
@@ -307,9 +307,10 @@ d = check_vals(s, d);
 try
     % Rotate XY
     camorbit(cax, d(1), d(2), 'camera', [0 0 1]);
-catch
+catch me
     % Error, so release mouse down
-    mouseup(cax)
+    fcw_mouseup(cax);
+    fprintf('%s\n', getReport(me, 'extended'));
 end
 end
 
@@ -318,9 +319,10 @@ d = check_vals(s, d);
 try
     % Rotate Z
     camroll(cax, d(2));
-catch
+catch me
     % Error, so release mouse down
-    mouseup(cax)
+    fcw_mouseup(cax);
+    fprintf('%s\n', getReport(me, 'extended'));
 end
 end
 
@@ -330,9 +332,10 @@ d = check_vals(s, d);
 d = (1 - 0.01 * sign(d(2))) ^ abs(d(2));
 try
     camzoom(cax, d);
-catch
+catch me
     % Error, so release mouse down
-    mouseup(cax)
+    fcw_mouseup(cax);
+    fprintf('%s\n', getReport(me, 'extended'));
 end
 end
 
@@ -342,20 +345,22 @@ d = check_vals(s, d);
 d = (1 - 0.01 * sign(d(2))) ^ abs(d(2)) - 1;
 try
     camdolly(cax, 0, 0, d, 'fixtarget', 'camera');
-catch
+catch me
     % Error, so release mouse down
-    mouseup(cax)
+    fcw_mouseup(cax);
+    fprintf('%s\n', getReport(me, 'extended'));
 end
 end
 
 function fcw_pan(s, d, cax)
-d = check_vals(s, d);
+D = check_vals(s, d);
 try
     % Pan
-    camdolly(cax, d(1), d(2), 0, 'movetarget', 'pixels');
-catch
+    camdolly(cax, D(1), D(2), 0, 'movetarget', 'pixels');
+catch me
     % Error, so release mouse down
-    mouseup(cax)
+    fcw_mouseup(cax);
+    fprintf('%s\n', getReport(me, 'extended'));
 end
 end
 
