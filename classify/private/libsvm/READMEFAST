@@ -1,0 +1,42 @@
+---------------------------------------------------------------
+May 19, 2008
+Subhransu Maji (smaji@cs.berkeley.edu)
+---------------------------------------------------------------
+This code is an addon to LIBSVM. Follow the instructions in README to compile the code.
+
+In addition to the executables in libSVM, the Makefile is modified
+to compile fastclassify.mex* which is a fast SVM classifier for intersection kernel.
+
+test.m : contains code to test the fast classifier and benchmark test times and errors
+         compared to the standard implementation.
+
+svm.cpp/svm.h have been modified to support intersection kernel (-t 4). 
+
+Note instersection kernel can be used when features are histograms
+(i.e. L1 normalized and positive).
+
+TO USE first train the model using -t 4 option and C-SVC (-s 0)
+model=svmtrain(training_label_vector, training_instance_matrix, '-t 4 -s 0 ...');
+
+use fastpredict to classify the examples
+
+>>fastpredict
+
+ Usage: [exact_values, pwconst_values, pwlinear_values,[times]] = ...
+        fastpredict(testing_label_vector, testing_instance_matrix, model,'libsvm_options')
+ 
+ Output:
+   exact_values    : predictions using binary search
+   pwconst_values  : approximation using piecewise constant function
+   pwlinear_values : approximation using piecewise linear function
+   [times]         : running times 
+ 
+ 
+ libsvm_options:
+   -b probability_estimates: whether to predict probability estimates, 0 or 1 (default 0);
+   -v verbose flag         : 0 or 1 (default 0);
+   -n number of bins       : [2,...] (default 100);
+
+ (Note: Only SVC and 2 class classifier is supported)
+ 
+
