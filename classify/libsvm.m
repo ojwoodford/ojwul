@@ -1,8 +1,8 @@
 %LIBSVM Interface to the libsvm library through a standard API
 %
 % Methods:
-%   obj = libsvm(); % Constructor - does nothing
-%   train(obj, data, labels, options);
+%   obj = libsvm(options); % Constructor - does nothing
+%   train(obj, data, labels);
 %   labels = train(obj, data);
 %      data - MxN array of N features of M dimensions.
 %      labels - 1xN logical vector of input classes or output class
@@ -14,25 +14,24 @@
 classdef libsvm < handle
     properties (Access = private, Hidden = true)
         params;
+        optString;
     end
     
     methods
-        % Constructor - does nothing
-        function this = libsvm()
+        % Constructor - set the SVM parameters
+        function this = libsvm(varargin)
+            this.optString = this.construct_options(varargin{:});
         end
 
         % Train
-        function train(this, data, labels, varargin)            
-            % Train the SVM
-            optString = this.construct_options(varargin{:});
-            
+        function train(this, data, labels)
             % Add weights (only for C-SVC but no harm adding anyway)
             labels = labels(:)*2-1;
             w = hist(labels, [-1 1]);
             w = w ./ sum(w);
-            optString = [optString sprintf(' -w-1 %d -w1 %d', w)];
             
-            this.params = svm_train(labels, data', optString);
+            % Train the SVM
+            this.params = svm_train(labels, data', [this.optString sprintf(' -w-1 %d -w1 %d', w)]);
         end
         
         % Test

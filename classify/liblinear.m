@@ -14,33 +14,32 @@
 classdef liblinear < handle
     properties (Access = private, Hidden = true)
         params;
+        optString;
     end
-    
+
     methods
-        % Constructor - does nothing
-        function this = liblinear()
+        % Constructor - set the SVM parameters
+        function this = liblinear(varargin)
+            this.optString = this.construct_options(varargin{:});
         end
 
         % Train
-        function train(this, data, labels, varargin)            
-            % Train the SVM
-            optString = this.construct_options(varargin{:});
-            
+        function train(this, data, labels)
             % Add weights (only for C-SVC but no harm adding anyway)
             labels = labels(:)*2-1;
             w = hist(labels, [-1 1]);
             w = w ./ sum(w);
-            optString = [optString sprintf(' -w-1 %d -w1 %d', w)];
-            
-            this.params = linear_train(labels, sparse(data), optString, 'col');
+
+            % Train the SVM
+            this.params = linear_train(labels, sparse(data), [this.optString sprintf(' -w-1 %d -w1 %d', w)], 'col');
         end
-        
+
         % Test
         function [probs, scores, accuracy] = test(this, data)
             % Run the classifier
             [scores, accuracy, probs] = linear_predict(ones(size(data, 2), 1), data', get_params(this));
         end
-        
+
         % Perform cross validation to find the best parameters
         function bestParams = param_search(this, data, labels, varargin)
             % Grid search here depends on type, only c, or c and gamma
@@ -49,12 +48,12 @@ classdef liblinear < handle
             else
                 cSearch =  logspace(-10,1,10);
             end
-            
+
             % Ensure we have some cross val folds
             if ~isfield(varargin{1},'val') || varargin{1}.val < 2
                 varargin{1}.val = 3;
             end
-            
+
             % Perform grid search
             accuracy = zeros(numel(cSearch), 1);
             for c = 1:numel(cSearch)
@@ -66,7 +65,7 @@ classdef liblinear < handle
             [~, bestCI] = max(accuracy);
             bestParams.cost = cSearch(bestCI);
         end
-        
+
         % Parameter getting and setting, for precomputing models
         function params = get_params(this)
             if isempty(this.params)
@@ -85,7 +84,7 @@ classdef liblinear < handle
             set_params(this, getfield(load(fname), 'svm_params'));
         end
     end
-    
+
     methods (Static = true, Hidden = true, Access = private)
         % Turn the standard options structure into a string
         % options:
@@ -111,7 +110,7 @@ classdef liblinear < handle
         % 		where f is the primal function and pos/neg are # of
         % 		positive/negative data (default 0.01)
         % 	-s 11
-        % 		|f'(w)|_2 <= eps*|f'(w0)|_2 (default 0.001) 
+        % 		|f'(w)|_2 <= eps*|f'(w0)|_2 (default 0.001)
         % 	-s 1, 3, 4 and 7
         % 		Dual maximal violation <= eps; similar to libsvm (default 0.1)
         % 	-s 5 and 6
@@ -153,11 +152,11 @@ classdef liblinear < handle
                 end
             end
             str = sprintf('-c %d -s %d', c, s);
-            
+
             if v > 0
                 str = [str sprintf(' -v %d', v)];
             end
-            
+
             if q == 1
                 str = [str ' -q'];
             end

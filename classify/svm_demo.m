@@ -21,10 +21,10 @@ train_class = gt_class(train_data);
 kernels = {'linear', 'intersection', 'radial'};
 for a = numel(kernels):-1:1
     % Use the libsvm library
-    obj(a) = libsvm();
+    obj(a) = libsvm(struct('kernel', kernels{a}, 'probabilistic', 1, 'type', 'epsilon-svr'));
     tic;
     % Train the SVM
-    train(obj(a), train_data, train_class, struct('kernel', kernels{a}, 'probabilistic', 1, 'type', 'epsilon-svr')); % Linear
+    train(obj(a), train_data, train_class);
     t(1,a) = toc;
 end
 
@@ -35,7 +35,7 @@ test_class = gt_class(test_data);
 % Classify test data using the 3 learned classifiers
 for a = numel(obj):-1:1
     tic;
-    output{a} = test(obj(a), test_data); % Linear
+    output{a} = test(obj(a), test_data);
     t(2,a) = toc;
 end
 
