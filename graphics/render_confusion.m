@@ -15,6 +15,7 @@ function render_confusion(M, class_names, varargin)
 opts.cmap = '-gray'; 
 %opts.cmap = '-hot*'; % Alternative option
 opts.totals = false;
+opts.normalize_rows = true;
 opts.labels = true;
 opts.font_size = 0.4;  % Proportion of box height
 opts.font = 'Times';
@@ -26,7 +27,12 @@ if opts.totals
 end
 
 % Create the background image
-im = sc(kron(bsxfun(@times, M, 1./sum(M, 2)), ones(8)), opts.cmap, [0 1]);
+if opts.normalize_rows
+    M_ = bsxfun(@times, M, 1./sum(M, 2));
+else
+    M_ = M;
+end
+im = sc(kron(M_, ones(8)), opts.cmap, [0 1]);
 image(im);
 im = sc(im(1:8:end,1:8:end,:), 'rgb2gray');
 im = im(:,:,1);
