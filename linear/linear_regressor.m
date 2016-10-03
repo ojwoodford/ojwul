@@ -1,7 +1,6 @@
 classdef linear_regressor < handle
     properties (SetAccess = private, Hidden = true)
         parameters;
-        norm_func;
         regularization_lambda = 0;
         isquadratic = false;
     end
@@ -18,8 +17,9 @@ classdef linear_regressor < handle
         function train(this, X, y)
             % Preprocess the data
             X = quadraticize(this, X');
-            [this.norm_func, X] = compute_normalization_function(X);
+            norm_mat = compute_normalization(X);
             X(:,end+1) = 1;
+            X = X * norm_mat;
             
             % Train
             if this.regularization_lambda
@@ -29,12 +29,14 @@ classdef linear_regressor < handle
                 % Solve the normal equation linear system
                 this.parameters = (X' * X) \ (X' * y(:));
             end
+            
+            % Apply the normalization
+            this.parameters = norm_mat * this.parameters;
         end
         
         function y = test(this, X)
             % Preprocess the data
             X = quadraticize(this, X');
-            X = this.norm_func(X);
             X(:,end+1) = 1;
             
             % Compute the output
@@ -50,14 +52,13 @@ classdef linear_regressor < handle
     end
 end
 
-function [norm_func, X] = compute_normalization_function(X)
+function norm_mat = compute_normalization(X)
 m = mean(X, 1);
 X = bsxfun(@minus, X, m);
 s = 1 ./ (sqrt(mean(X .* X, 1)) + 1e-38);
-norm_func = @(X) bsxfun(@times, bsxfun(@minus, X, m), s);
-if nargout > 1
-    X = bsxfun(@times, X, s);
-end
+norm_mat = diag(s);
+norm_mat(end+1,:) = -(m .* s);
+norm_mat(end,end+1) = 1;
 end
 
 function [J, grad] = linear_regression_cost(X, y, theta, lambda)
