@@ -39,20 +39,22 @@ function str = datatip_txtfun(~, h)
 [~, id] = sqdist2closest(h.Position', [h.Target.XData; h.Target.YData]);
 data = h.Target.UserData;
 str = struct('X', h.Target.XData(id), 'Y', h.Target.YData(id));
-if iscell(data)
-    for a = 1:2:numel(data)
-        if iscell(data{a+1})
-            str.(data{a}) = data{a+1}{id};
+if ~isempty(data)
+    if iscell(data)
+        for a = 1:2:numel(data)
+            if iscell(data{a+1})
+                str.(data{a}) = data{a+1}{id};
+            else
+                str.(data{a}) = data{a+1}(:,id)';
+            end
+        end
+    else
+        if iscell(data)
+            str.Data = data{id};
         else
-            str.(data{a}) = data{a+1}(:,id)';
+            str.Data = data(:,id)';
         end
     end
-else
-    if iscell(data)
-        str.data = data{id};
-    else
-        str.(data) = data(:,id)';
-    end
 end
-str = evalc('disp(str)');
+str = regexprep(evalc('disp(str)'), '\n *', '\n');
 end
