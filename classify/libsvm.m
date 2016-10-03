@@ -64,6 +64,10 @@ classdef libsvm < handle
         function load_params(this, fname)
             set_params(this, getfield(load(fname), 'svm_params'));
         end
+        function fw = get_feature_weights(this)
+            fw = get_params(this);
+            fw = full(fw.SVs)' * fw.sv_coef;
+        end
     end
     
     methods (Static = true, Hidden = true, Access = private)
