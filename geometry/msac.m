@@ -26,7 +26,7 @@
 %   sqDists - 1xN vector of squared distances for the best model found.
 
 function [bestM, bestD, stats] = msac(X, fittingFunc, distFunc, minSamples, distThresh, maxTrials)
-confidence = 0.999; % Desired probability of choosing at least one sample free from outliers
+confidence = 0.99999; % Desired probability of choosing at least one sample free from outliers
 confidence = log1p(-confidence);
 if nargin < 6
     % Assume 30% inliers
