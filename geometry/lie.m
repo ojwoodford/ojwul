@@ -1,7 +1,7 @@
 classdef lie
     properties (Hidden = true, SetAccess = protected)
-        G; % Generators
-        normalizers;
+        G; % Generators for computing tangent
+        Gv; % Generators for computing matrix
         sz;
     end
     methods
@@ -35,20 +35,43 @@ classdef lie
             end
             this.sz = [size(generators, 1) size(generators, 2)];
             this.G = reshape(generators, [], size(generators, 3));
-            this.normalizers = 1 ./ sum(abs(this.G), 1)';
+            this.Gv = bsxfun(@times, this.G, 1 ./ sum(abs(this.G), 1))';
         end
+        
+        % VEE - Convert from Lie matrix to Lie tangent space
+        function tangent = vee(this, matrix)
+            tangent = this.Gv * reshape(matrix, size(this.Gv, 2), []);
+        end
+        
+        % LOG - Convert from transform to Lie matrix to Lie tangent space
         function tangent = log(this, transform)
             [~, ~, N] = size(transform);
             for a = N:-1:1
-             tangent(:,a) = sum(bsxfun(@times, reshape(logm(transform(:,:,a)), [], 1), this.G), 1)' .* this.normalizers;
+                tangent(:,a) = this.vee(logm(transform(:,:,a)));
             end
         end
-        function transfom = exp(this, tangent)
+        
+        % HAT - Convert from Lie tangent space to Lie matrix
+        function matrix = hat(this, tangent)
+            matrix = reshape(this.G * tangent, this.sz(1), this.sz(2), []);
+        end
+        
+        % EXP - Convert from Lie tangent space to transform
+        function transform = exp(this, tangent)
             [~, N] = size(tangent);
             for a = N:-1:1
-                transfom(:,:,N) = expm(reshape(sum(bsxfun(@times, this.G, tangent(:,a)'), 2), this.sz));
+                transform(:,:,N) = expm(this.hat(tangent(:,a)));
             end
         end
+        
+        % LIEBRACKET - Apply the Lie bracket to two Lie tangent vectors
+        function tangent = liebracket(this, tangentA, tangentB)
+            A = this.hat(tangentA);
+            B = this.hat(tangentB);
+            tangent = this.vee(A * B - B * A);
+        end
+        
+        % INTERP1 - Linear interpolation between transforms
         function Vq = interp1(this, X, V, Xq)
             for a = numel(X)-1:-1:1
                 tangents(:,a) = this.log(V(:,:,a+1) / V(:,:,a));
