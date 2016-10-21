@@ -10,7 +10,7 @@
 
 % Copyright (C) Oliver Woodford 2015
 
-function mov2im(infile, outfile_format)
+function mov2im(infile, outfile_format, varargin)
 
 % Create the movie object
 hMov = VideoReader(infile);
@@ -18,7 +18,7 @@ hMov = VideoReader(infile);
 % Write out the frames
 frame = 0;
 while hasFrame(hMov)
-    imwrite(readFrame(hMov), sprintf(outfile_format, frame));
+    imwrite(readFrame(hMov), sprintf(outfile_format, frame), varargin{:});
     frame = frame + 1;
 end
 end
