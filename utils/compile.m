@@ -394,6 +394,7 @@ end
 
 % Create the compiler options for lapack/blas
 function [str, co] = lapack(debug)
+co = '';
 str = '-lmwlapack -lmwblas'; % Use MATLAB's versions
 end
 
