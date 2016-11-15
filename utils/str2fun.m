@@ -31,7 +31,7 @@
 function fun = str2fun(str)
 assert(ischar(str));
 if str(1) ~= '@'
-    [p, str] = fileparts(mexfun);
+    [p, str] = fileparts(str);
     if ~isempty(p)
         cwd = cd(p);
         cleanup_obj = onCleanup(@() cd(cwd));
