@@ -23,7 +23,7 @@ classdef mex_interface < handle
 
         %% All other methods
         function varargout = subsref(this, s)
-            if numel(s) < 2 || ~isequal(s(1).type) || ~isequal(s(2).type, '()')
+            if numel(s) < 2 || ~isequal(s(1).type, '.') || ~isequal(s(2).type, '()')
                 error('Not a valid indexing expression')
             end
             [varargout{1:nargout}] = this.mexHandle(s(1).subs, this.objectHandle, s(2).subs{:});
