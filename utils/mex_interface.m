@@ -13,12 +13,19 @@ classdef mex_interface < handle
         
         %% Destructor - Destroy the C++ class instance
         function delete(this)
-            this.mexHandle('delete', this.objectHandle);
+            if ~isempty(this.objectHandle)
+                this.mexHandle('delete', this.objectHandle);
+            end
+            this.objectHandle = [];
         end
         
         %% Disp - get the function name
         function disp(this, var_name)
-            fprintf('%s is an object instance of %s\n', var_name, func2str(this.mexHandle));
+            if nargin > 1
+                fprintf('%s is an object instance of %s\n', var_name, func2str(this.mexHandle));
+            else
+                fprintf('Object instance of %s\n', func2str(this.mexHandle));
+            end
         end
 
         %% All other methods
@@ -26,6 +33,7 @@ classdef mex_interface < handle
             if numel(s) < 2 || ~isequal(s(1).type, '.') || ~isequal(s(2).type, '()')
                 error('Not a valid indexing expression')
             end
+            assert(~isempty(this.objectHandle), 'Object not initialized correctly');
             [varargout{1:nargout}] = this.mexHandle(s(1).subs, this.objectHandle, s(2).subs{:});
         end
     end
