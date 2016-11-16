@@ -28,8 +28,13 @@ classdef autodiff
             c = obj.value;
         end
         
-        function c = grad(obj)
-            c = obj.deriv;
+        function c = grad(obj, vars)
+            if nargin < 2
+                vars = obj.varind;
+            end
+            c = zeros([numel(vars) size(obj.value)]);
+            [Lia, Locb] = ismember(vars, obj.varind);
+            c(Lia,:) = obj.deriv(Locb,:);
         end
         
         function c = var_indices(obj)
@@ -260,7 +265,9 @@ classdef autodiff
         % Array concatenation
         function c = cat(dim, varargin)
             c = cellfun(@double, varargin, 'Uniform', false);
-            d = cellfun(@grad, varargin, 'Uniform', false);
+            v = cellfun(@var_indices, varargin, 'Uniform', false);
+            v = unique(cat(2, v{:}));
+            d = cellfun(@(x) grad(x, v), varargin, 'Uniform', false);
             c = autodiff(cat(dim, c{:}), v, cat(dim+1, d{:}));
         end
         
@@ -286,16 +293,17 @@ classdef autodiff
         end
         
         function c = ipermute(a, order)
-            c = autodiff(ipermute(a.value, order), a.varind, ipermute(a.deriv, [1 order+1]));
+            order(order) = 1:numel(order);
+            c = permute(a, order);
         end
         
         function c = reshape(a, varargin)
             if nargin == 2
-                v_ = {[size(a.deriv, 1) varargin{1}]};
+                v_ = [size(a.deriv, 1) varargin{1}];
             else
-                v_ = [{size(a.deriv, 1)} varargin];
+                v_ = [size(a.deriv, 1) varargin{:}];
             end
-            c = autodiff(reshape(a.value, varargin{:}), a.varind, reshape(a.deriv, v_{:}));
+            c = autodiff(reshape(a.value, varargin{:}), a.varind, reshape(a.deriv, v_));
         end
         
         function c = shiftdim(a, n)

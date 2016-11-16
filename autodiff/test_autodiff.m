@@ -14,12 +14,13 @@ X = Hgt * [x(:)'; y(:)'; ones(1, numel(x))];
 
 % Create a cost function
 H = eye(3);
+H = H(1:8)';
 for a = 1:100
     % The magic line!!!!
     H_ = autodiff(H);
     
     % Apply the homography
-    Y = H_ * X;
+    Y = reshape([H_; 1], 3, 3) * X;
     Y = proj(Y);
     
     % Sample the image
@@ -30,11 +31,11 @@ for a = 1:100
     r = tgt - ref;
     
     % Read out the *automagically* computed gradient of the residuals
-    J = reshape(grad(r), 9, []);
+    J = reshape(grad(r), 8, []);
     r = double(r);
     
     % Compute the gauss-newton step
-    step = reshape(J' \ r(:), 3, 3);
+    step = J' \ r(:);
     
     % Visualization
     subplot(131)
@@ -46,7 +47,7 @@ for a = 1:100
     drawnow;
     
     % Check for convergence
-    if norm(step(:)) < 1e-10
+    if norm(step) < 1e-10
         break;
     end
     
