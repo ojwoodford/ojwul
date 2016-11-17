@@ -230,7 +230,7 @@ public:
         X -= __SHIFT_FACTOR__;
         Y -= __SHIFT_FACTOR__;
         // Check in bounds
-        if (X >= 0.0 && Y >= 0.0 && X < IM_BASE<T, U, V>::dw && Y <= IM_BASE<T, U, V>::dh) {
+        if (X >= 0.0 && Y >= 0.0 && X <= IM_BASE<T, U, V>::dw && Y <= IM_BASE<T, U, V>::dh) {
             // Compute integer coordinates and offsets
             int y = (int)(Y);
             int x = (int)(X);
@@ -266,7 +266,7 @@ public:
         // Do the shift
         X -= __SHIFT_FACTOR__;
         Y -= __SHIFT_FACTOR__;
-        if (X >= 0.0 && Y >= 0.0 && X < IM_BASE<T, U, V>::dw && Y <= IM_BASE<T, U, V>::dh) {
+        if (X >= 0.0 && Y >= 0.0 && X <= IM_BASE<T, U, V>::dw && Y <= IM_BASE<T, U, V>::dh) {
             // Compute integer coordinates and offsets
             int y = (int)(Y);
             int x = (int)(X);
