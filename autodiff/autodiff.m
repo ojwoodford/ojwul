@@ -289,11 +289,11 @@ classdef autodiff
         
         % Transpose, permute, reshape, shiftdim etc.
         function c = ctranspose(a)
-            c = permute(conj(a), [1 2]);
+            c = permute(conj(a), [2 1]);
         end  
         
         function c = transpose(a)
-            c = permute(a, [1 2]);
+            c = permute(a, [2 1]);
         end
         
         function c = permute(a, order)
