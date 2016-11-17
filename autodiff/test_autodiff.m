@@ -12,15 +12,20 @@ ref = ojw_interp2(A, x, y);
 Hgt = eye(3) + randn(3) * 0.0002;
 X = Hgt * [x(:)'; y(:)'; ones(1, numel(x))];
 
+% Use SL(3) representation of a homography
+sl3 = lie('sl3');
+
 % Create a cost function
 H = eye(3);
-H = H(1:8)';
 for a = 1:100
     % The magic line!!!!
-    H_ = autodiff(H);
+    dH = autodiff(zeros(8, 1));
+    
+    % Compute the homgraphy update
+    dH = exp(sl3, dH);
     
     % Apply the homography
-    Y = reshape([H_; 1], 3, 3) * X;
+    Y = (H * dH) * X;
     Y = proj(Y);
     
     % Sample the image
@@ -52,6 +57,6 @@ for a = 1:100
     end
     
     % Apply the step
-    H = H - step;
+    H = H * exp(sl3, -step);
 end
 end

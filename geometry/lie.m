@@ -10,7 +10,7 @@ classdef lie
                 switch generators
                     case 'se3'
                         % Generators for se3
-                        generators = zeros(4,4,6);
+                        generators = zeros(4, 4, 6);
                         generators(1,4,1) = 1;
                         generators(2,4,2) = 1;
                         generators(3,4,3) = 1;
@@ -22,13 +22,28 @@ classdef lie
                         generators(2,1,6) = 1;
                     case 'so3'
                         % Generators for so3
-                        generators = zeros(3,3,3);
+                        generators = zeros(3, 3, 3);
                         generators(3,2,1) = 1;
                         generators(2,3,1) = -1;
                         generators(1,3,2) = 1;
                         generators(3,1,2) = -1;
                         generators(1,2,3) = -1;
                         generators(2,1,3) = 1;
+                    case 'sl3'
+                        % Generators for sl3
+                        % From "Homography-based 2D Visual Tracking and
+                        % Servoing", Benhimane & Malis
+                        generators = zeros(3, 3, 8);
+                        generators(1,3,1) = 1;
+                        generators(2,3,2) = 1;
+                        generators(1,2,3) = 1;
+                        generators(2,1,4) = 1;
+                        generators(1,1,5) = 1;
+                        generators(2,2,5) = -1;
+                        generators(2,2,6) = -1;
+                        generators(3,3,6) = 1;
+                        generators(3,1,7) = 1;
+                        generators(3,2,8) = 1;
                     otherwise
                         error('Lie group not recognized');
                 end
@@ -59,6 +74,11 @@ classdef lie
         % EXP - Convert from Lie tangent space to transform
         function transform = exp(this, tangent)
             [~, N] = size(tangent);
+            if N == 1
+                % Hack for non-numeric types, e.g. autodiff
+                transform = expm(this.hat(tangent));
+                return;
+            end
             for a = N:-1:1
                 transform(:,:,N) = expm(this.hat(tangent(:,a)));
             end

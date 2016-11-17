@@ -162,6 +162,14 @@ classdef autodiff
             c = autodiff(da * db, v, c);
         end
         
+        function c = expm(a)
+            c = expm(a.value);
+            sz = [size(a.deriv) 1];
+            d = bsxfun(@times, shiftdim(c, -1), reshape(a.deriv, sz([1 end 2:end-1])));
+            d = reshape(sum(d, 3), sz);
+            c = autodiff(c, a.varind, d);
+        end
+        
         % Reduction methods: Sum, prod, min, max
         function c = sum(a, dim)
             if nargin < 2
