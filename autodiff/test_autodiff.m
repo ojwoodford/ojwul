@@ -52,7 +52,7 @@ for a = 1:100
     drawnow;
     
     % Check for convergence
-    if norm(step) < 1e-10
+    if norm(step) < 1e-12
         break;
     end
     
