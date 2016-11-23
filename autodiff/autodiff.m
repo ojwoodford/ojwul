@@ -317,12 +317,12 @@ classdef autodiff
         end
         
         function c = reshape(a, varargin)
-            if nargin == 2
-                v_ = [size(a.deriv, 1) varargin{1}];
+            if nargin == 2 && isnumeric(varargin{1})
+                v_ = {[size(a.deriv, 1) varargin{1}]};
             else
-                v_ = [size(a.deriv, 1) varargin{:}];
+                v_ = [{size(a.deriv, 1)}; varargin(:)];
             end
-            c = autodiff(reshape(a.value, varargin{:}), a.varind, reshape(a.deriv, v_));
+            c = autodiff(reshape(a.value, varargin{:}), a.varind, reshape(a.deriv, v_{:}));
         end
         
         function c = shiftdim(a, n)
