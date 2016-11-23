@@ -1,5 +1,6 @@
+% A class for doing autodifferentiation
 classdef autodiff
-    properties (SetAccess = private)
+    properties (SetAccess = private, Hidden = true)
         value;   % Function values    Mx...xN
         deriv;   % Jacobian values  VxMx...xN
         varind;  % Variable indices   1xV
