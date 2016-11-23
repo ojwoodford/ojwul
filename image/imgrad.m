@@ -20,7 +20,7 @@
 %           "Differentiation of Discrete Multi-Dimensional Signals". IEEE
 %           Trans. Image Processing. 13(4): 496-508 (2004). are used.
 %   mcm - multi-channel method: 'dizenzo' (default), 'norm', 'pca',
-%                               'rgb2gray'.
+%                               'rgb2gray', 'none'.
 %
 % OUT:
 %   Ix - HxW array of gradient images in the x direction.
@@ -100,6 +100,8 @@ if c > 1
             % Compute the gradient norm
             Ix = sign(sum(Ix, 3)) .* normd(Ix, 3);
             Iy = sign(sum(Iy, 3)) .* normd(Iy, 3);
+        case 'none'
+            % Leave as is
         otherwise
             error('Multi-channel method %s not recognized', mcm);
     end
