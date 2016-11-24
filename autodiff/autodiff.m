@@ -146,6 +146,10 @@ classdef autodiff
         
         % Matrix operators
         function c = mtimes(a, b)
+            if isscalar(a) || isscalar(b)
+                c = times(a, b);
+                return;
+            end
             da = double(a);
             db = double(b);
             if isautodiff(b)
