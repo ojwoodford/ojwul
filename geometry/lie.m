@@ -8,6 +8,13 @@ classdef lie
         function this = lie(generators)
             if ischar(generators)
                 switch generators
+                    case 'se2'
+                        % Generators for se2
+                        generators = zeros(3, 3, 3);
+                        generators(1,3,1) = 1;
+                        generators(2,3,2) = 1;
+                        generators(1,2,3) = -1;
+                        generators(2,1,3) = 1;
                     case 'so3'
                         generators = so3();
                     case 'se3'
