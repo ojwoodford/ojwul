@@ -20,7 +20,8 @@ persistent eq tv
 proj = @(X) X(1:2) / X(3);
 if isempty(eq)
     % Compute the point to line distance equation once
-    tv = sym(sym('tv%d', [8 1]), 'real');
+    tv = sym('tv%d', [8 1]);
+    assume(tv, 'real');
     syms d_ real
     eq = proj(tv(1:3) + tv(4:6) * d_) - tv(7:8);
     eq = simplify(solve(diff(eq' * eq, d_) == sym(0), d_)); % Minimize error

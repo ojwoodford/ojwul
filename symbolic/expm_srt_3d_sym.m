@@ -19,12 +19,9 @@
 
 function M = expm_srt_3d_sym(r, t, s)
 
-% Divide by zero factor
-dbzf = 1e-38;
-
 % Default values
 if nargin < 3
-    s = 0;
+    s = sym(0);
     if nargin < 2
         t = [];
     end
@@ -32,7 +29,7 @@ end
 
 % Angles
 theta2 = r(:)' * r(:);
-theta = sqrt(theta2 + dbzf);
+theta = sqrt(theta2);
 
 % Skew matrix
 W = skew(r);
@@ -55,25 +52,32 @@ if nargin < 3
 else
     x = cos(theta) * exp(s) - 1;
     y = sin(theta) * exp(s);
-    eta_r = expf(s) - (s * x + theta * y) / (s * s + theta2 + dbzf);
-    eta_i = (s * y - theta * x) / (theta * (s * s + theta2) + dbzf);
+    eta_r = expf(s) - (s * x + theta * y) / (s * s);
+    eta_i = (s * y - theta * x) / (theta * (s * s + theta2));
 end
-eta_r = eta_r / (theta2 + dbzf);
+eta_r = at0is1(theta2, @(theta2) eta_r / theta2);
 A = W * eta_i + W2 * eta_r + (eye(3) * expf(s));
 
 % Compute the translation part
-M(4,4) = 1;
-M(1:3,4) = A * t(:);
+M(1:3,4) = simplify(A * t(:));
+end
 
-    function x = sinc(x)
-        x = (sin(x) + dbzf) / (x + dbzf);
-    end
+function x = sinc(x)
+x = at0is1(x, @(x) sin(x) / x);
+end
 
-    function x = cosf(x)
-        x = ((1 - cos(x)) + dbzf) / (x * x + dbzf);
-    end
+function x = cosf(x)
+x = at0is1(x, @(x) (1 - cos(x)) / (x * x));
+end
 
-    function x = expf(x)
-        x = ((exp(x) - 1) + dbzf) / (x + dbzf);
-    end
+function x = expf(x)
+x = at0is1(x, @(x) (exp(x) - 1) / x);
+end
+
+function x = at0is1(x, fun)
+if isequal(x, sym(0))
+    x = sym(1);
+else
+    x = fun(x);
+end
 end
