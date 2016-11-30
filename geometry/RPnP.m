@@ -139,7 +139,8 @@ for i = 1:m
     [R, t] = calcampose(XXc,X);
     
     % Calculate the reprojection error
-    r = proj(bsxfun(@plus, R * X, t)) - xx;
+    r = bsxfun(@plus, R * X, t);
+    r = [proj(r) - xx; min(r(3,:), 0)]; % Don't allow negative points
     r = r(:)' * r(:);
     
     % Keep the smallest reprojection error
