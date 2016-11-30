@@ -64,8 +64,14 @@ classdef lie
             end
         end
         
+        % ADJOINT - Compute the adjoint matrix of a Lie tangent vector
+        function adj = adjoint(this, tangent)
+            
+        end
+        
         % LIEBRACKET - Apply the Lie bracket to two Lie tangent vectors
         function tangent = liebracket(this, tangentA, tangentB)
+            %tangent = this.adjoint(tangentA) * tangentB;
             A = this.hat(tangentA);
             B = this.hat(tangentB);
             tangent = this.vee(A * B - B * A);
