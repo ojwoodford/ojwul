@@ -1,5 +1,6 @@
 xrepmat.m
 .ignore/
+.DS_store
 *.exe
 *.o
 *.obj

@@ -8,27 +8,36 @@ classdef lie
         function this = lie(generators)
             if ischar(generators)
                 switch generators
+                    case 'se2'
+                        % Generators for se2
+                        generators = zeros(3, 3, 3);
+                        generators(1,3,1) = 1;
+                        generators(2,3,2) = 1;
+                        generators(1,2,3) = -1;
+                        generators(2,1,3) = 1;
+                    case 'so3'
+                        generators = so3();
                     case 'se3'
                         % Generators for se3
-                        generators = zeros(4,4,6);
+                        generators = zeros(4, 4, 6);
                         generators(1,4,1) = 1;
                         generators(2,4,2) = 1;
                         generators(3,4,3) = 1;
                         generators(3,2,4) = 1;
-                        generators(2,3,4) = -1;
-                        generators(1,3,5) = 1;
-                        generators(3,1,5) = -1;
-                        generators(1,2,6) = -1;
-                        generators(2,1,6) = 1;
-                    case 'so3'
-                        % Generators for so3
-                        generators = zeros(3,3,3);
-                        generators(3,2,1) = 1;
-                        generators(2,3,1) = -1;
-                        generators(1,3,2) = 1;
-                        generators(3,1,2) = -1;
-                        generators(1,2,3) = -1;
-                        generators(2,1,3) = 1;
+                        generators(1:3,1:3,4:6) = so3();
+                    case 'sl3'
+                        % Generators for sl3
+                        % From "Homography-based 2D Visual Tracking and
+                        % Servoing", Benhimane & Malis
+                        generators = zeros(3, 3, 8);
+                        generators(1,3,1) = 1; % x translation
+                        generators(2,3,2) = 1; % y translation
+                        generators(1,2,3) = 1;
+                        generators(1:3,1:3,4:6) = so3();
+                        generators(1,1,7) = 1;
+                        generators(2,2,7) = -1;
+                        generators(2,2,8) = -1;
+                        generators(3,3,8) = 1;
                     otherwise
                         error('Lie group not recognized');
                 end
@@ -59,6 +68,11 @@ classdef lie
         % EXP - Convert from Lie tangent space to transform
         function transform = exp(this, tangent)
             [~, N] = size(tangent);
+            if N == 1
+                % Hack for non-numeric types, e.g. autodiff
+                transform = expm(this.hat(tangent));
+                return;
+            end
             for a = N:-1:1
                 transform(:,:,N) = expm(this.hat(tangent(:,a)));
             end
@@ -89,5 +103,16 @@ classdef lie
             end
         end
     end
+end
+
+function G = so3()
+% Generators for so3
+G = zeros(3, 3, 3);
+G(3,2,1) = 1;
+G(2,3,1) = -1;
+G(1,3,2) = 1;
+G(3,1,2) = -1;
+G(1,2,3) = -1;
+G(2,1,3) = 1;
 end
        

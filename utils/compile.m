@@ -300,31 +300,24 @@ for a = 1:numel(sourceList)
 end
 end
 
-function cuda_path_str = cuda_path()
-cuda_path_str = user_string('cuda_path');
-if ~check_path()
-    % Check the environment variables
-    cuda_path_str = fullfile(getenv('CUDA_PATH'), '/');
-    if check_path()
-        user_string('cuda_path', cuda_path_str);
-        return;
-    end
-    % Ask the user to enter the path
-    while 1
-        cuda_path_str = ask_user_for_directory('CUDA');
-        if check_path()
-            user_string('cuda_path', cuda_path_str);
-            return;
-        end
-    end
-    error('Cuda not found.');
+function path_str = cuda_path()
+path_str = user_string('cuda_path');
+if check_cuda_path(path_str)
+    return;
 end
-% Nested function
-    function good = check_path
-        % Check the path is valid
-        [good, message] = system(sprintf('"%s%s" -h', cuda_path_str, nvcc()));
-        good = good == 0;
-    end
+% Check the environment variables
+path_str = fullfile(getenv('CUDA_PATH'), '/');
+if check_cuda_path(path_str)
+    user_string('cuda_path', path_str);
+    return;
+end
+path_str = get_user_dir('CUDA', check_cuda_path);
+end
+
+function good = check_cuda_path(path_str)
+% Check the cuda path is valid
+[good, message] = system(sprintf('"%s%s" -h', path_str, nvcc()));
+good = good == 0;
 end
 
 function path_ = nvcc()
@@ -334,39 +327,8 @@ if ispc
 end
 end
 
-function cuda_sdk_path_str = cuda_sdk
-cuda_sdk_path_str = user_string('cuda_sdk_path');
-if ~check_path()
-    % Ask the user to enter the path
-    while 1
-        cuda_sdk_path_str = [ask_user_for_directory('CUDA SDK') 'C' filesep 'common' filesep];
-        if check_path()
-             user_string('cuda_sdk_path', cuda_sdk_path_str);
-            return;
-        end
-    end
-    warning('Cuda SDK not found.');
-end
-% Nested function
-    function good = check_path
-        % Check the path is valid
-        good = exist([cuda_sdk_path_str 'inc' filesep 'cutil.h'], 'file');
-    end
-end
-
-function path_str = ask_user_for_directory(name)
-path_str = sprintf('Please select your %s installation directory.', name);
-if strncmp(computer, 'MAC', 3) % Is a Mac
-    % Give separate warning as the uigetdir dialogue box doesn't have a
-    % title
-    uiwait(warndlg(path_str))
-end
-path_str = uigetdir('/', path_str);
-if isequal(path_str, 0)
-    % User hit cancel or closed window
-    error('%s not found.', name);
-end
-path_str = [path_str filesep];
+function path_str = cuda_sdk
+path_str = get_user_dir('CUDA SDK', @(p) exist([p 'inc' filesep 'cutil.h'], 'file'), ['C' filesep 'common' filesep]);
 end
 
 % FEVAL for function which is not a subfunction in this file
@@ -394,6 +356,7 @@ end
 
 % Create the compiler options for lapack/blas
 function [str, co] = lapack(debug)
+co = '';
 str = '-lmwlapack -lmwblas'; % Use MATLAB's versions
 end
 
@@ -414,216 +377,84 @@ end
 % Create the compiler options for OpenCV
 function [str, co] = opencv(debug)
 co = '';
-opencv_path_str = user_string('opencv_path');
-if ~check_path()
-    % Ask the user to enter the path
-    while 1
-        path_str = ask_user_for_directory('OpenCV');
-        opencv_path_str = [path_str filesep];
-        if check_path()
-            user_string('opencv_path', opencv_path_str);
-            break;
-        end
-    end
+str = get_user_dir('OpenCV', check_opencv_path);
+str = sprintf('-I"%sinclude/opencv" -L"%slib" -lcv210 -lcvaux210 -lcxcore210', str, str);
 end
-str = sprintf('-I"%sinclude/opencv" -L"%slib" -lcv210 -lcvaux210 -lcxcore210', opencv_path_str, opencv_path_str);
-% Nested function
-    function good = check_path
-        % Check the path is valid
-        if ispc
-            good = exist([opencv_path_str 'cvconfig.h.cmake'], 'file');
-        else
-            good = exist([opencv_path_str 'cvconfig.h.in'], 'file');
-        end
-    end
+
+function good = check_opencv_path(path_str)
+% Check the OpenCV path is valid
+if ispc()
+    good = exist([path_str 'cvconfig.h.cmake'], 'file');
+else
+    good = exist([path_str 'cvconfig.h.in'], 'file');
+end
 end
 
 % Add the boost library directory
 function [str, co] = boost(debug)
 co = '';
-boost_path_str = user_string('boost_path');
-if ~check_path()
-    % Ask the user to enter the path
-    while 1
-        boost_path_str = ask_user_for_directory('Boost');
-        if check_path()
-            user_string('boost_path', boost_path_str);
-            break;
-        end
-    end
-end
-str = sprintf('-I"%s" -L"%sstage%slib%s"', boost_path_str, boost_path_str, filesep, filesep);
-% Nested function
-    function good = check_path
-        % Check the path is valid
-        good = exist(sprintf('%sboost%sshared_ptr.hpp', boost_path_str, filesep), 'file');
-    end
+str = get_user_dir('Boost', @(p) exist(sprintf('%sboost%sshared_ptr.hpp', p, filesep), 'file'));
+str = sprintf('-I"%s" -L"%sstage%slib%s"', str, str, filesep, filesep);
 end
 
 % Add the directX library directory
 function [str, co] = directx(debug)
-co = '';
-directx_path_str = user_string('directx_sdk_path');
-if ~check_path()
-    % Ask the user to enter the path
-    while 1
-        directx_path_str = ask_user_for_directory('DirectX SDK');
-        if check_path()
-            user_string('directx_sdk_path', directx_path_str);
-            break;
-        end
-    end
+if ~ispc()
+    error('DirectX only supported on Windows');
 end
-str = sprintf('-L"%sLib%sx%d"', directx_path_str, filesep, 86-22*is64bit());
-% Nested function
-    function good = check_path
-        % Check the path is valid
-        if ispc
-            good = exist(sprintf('%sLib%sx86%sdxguid.lib', directx_path_str, filesep, filesep), 'file');
-        else
-            error('DirectX only supported on Windows');
-        end
-    end
+co = '';
+str = get_user_dir('DirectX SDK', @(p) exist(sprintf('%sLib%sx86%sdxguid.lib', p, filesep, filesep), 'file'));
+str = sprintf('-L"%sLib%sx%d"', str, filesep, 86-22*is64bit());
 end
 
 % Add the Eigen include directory
 function [str, co] = eigen(debug)
 co = '';
-eigen_path_str = user_string('eigen_path');
-if ~check_path()
-    % Ask the user to enter the path
-    while 1
-        eigen_path_str = ask_user_for_directory('Eigen');
-        if check_path()
-            user_string('eigen_path', eigen_path_str);
-            break;
-        end
-    end
-end
-str = sprintf('-I"%s"', eigen_path_str(1:end-1));
+str = get_user_dir('Eigen', @(p) exist(sprintf('%sEigen%sCore', p, filesep), 'file'));
+str = sprintf('-I"%s"', str(1:end-1));
 if ~debug
     str = [str ' -DEIGEN_NO_DEBUG'];
 end
-% Nested function
-    function good = check_path
-        % Check the path is valid
-        good = exist(sprintf('%sEigen%sCore', eigen_path_str, filesep), 'file');
-    end
 end
 
 % Add the Ceres library directory
 function [str, co] = ceres(debug)
 co = '';
-ceres_path_str = user_string('ceres_path');
-if ~check_path()
-    % Ask the user to enter the path
-    while 1
-        ceres_path_str = ask_user_for_directory('Ceres');
-        if check_path()
-            user_string('ceres_path', ceres_path_str);
-            break;
-        end
-    end
-end
-str = sprintf('-I"%sinclude" -L"%slib" -lceres', ceres_path_str, ceres_path_str);
-% Nested function
-    function good = check_path
-        % Check the path is valid
-        good = exist(sprintf('%sinclude%sceres%sceres.h', ceres_path_str, filesep, filesep), 'file');
-    end
+str = get_user_dir('Ceres', @(p) exist(sprintf('%sinclude%sceres%sceres.h', p, filesep, filesep), 'file'));
+str = sprintf('-I"%sinclude" -L"%slib" -lceres', str, str);
 end
 
 % Add the glog library directory
 function [str, co] = glog(debug)
 co = '';
-glog_path_str = user_string('glog_path');
-if ~check_path()
-    % Ask the user to enter the path
-    while 1
-        glog_path_str = ask_user_for_directory('glog');
-        if check_path()
-            user_string('glog_path', glog_path_str);
-            break;
-        end
-    end
-end
-str = sprintf('-I"%sinclude" -L"%slib" -lglog', glog_path_str, glog_path_str);
-% Nested function
-    function good = check_path
-        % Check the path is valid
-        good = exist(sprintf('%sinclude%sglog%slogging.h', glog_path_str, filesep, filesep), 'file');
-    end
+str = get_user_dir('glog', @(p) exist(sprintf('%sinclude%sglog%slogging.h', p, filesep, filesep), 'file'));
+str = sprintf('-I"%sinclude" -L"%slib" -lglog', str, str);
 end
 
 % Add the gflags library directory
 function [str, co] = gflags(debug)
 co = '';
-gflags_path_str = user_string('gflags_path');
-if ~check_path()
-    % Ask the user to enter the path
-    while 1
-        gflags_path_str = ask_user_for_directory('gflags');
-        if check_path()
-            user_string('gflags_path', gflags_path_str);
-            break;
-        end
-    end
-end
-str = sprintf('-I"%sinclude" -L"%slib" -lgflags', gflags_path_str, gflags_path_str);
-% Nested function
-    function good = check_path
-        % Check the path is valid
-        good = exist(sprintf('%sinclude%sgflags%sgflags.h', gflags_path_str, filesep, filesep), 'file');
-    end
+str = get_user_dir('glflags', @(p) exist(sprintf('%sinclude%sgflags%sgflags.h', p, filesep, filesep), 'file'));
+str = sprintf('-I"%sinclude" -L"%slib" -lgflags', str, str);
 end
 
 % Add the Sophus include directory
 function [str, co] = sophus(debug)
 co = '';
-sophus_path_str = user_string('sophus_path');
-if ~check_path()
-    % Ask the user to enter the path
-    while 1
-        sophus_path_str = ask_user_for_directory('Sophus');
-        if check_path()
-            user_string('sophus_path', sophus_path_str);
-            break;
-        end
-    end
-end
-str = sprintf('-I"%s"', sophus_path_str(1:end-1));
-% Nested function
-    function good = check_path
-        % Check the path is valid
-        good = exist(sprintf('%ssophus%sse3.hpp', sophus_path_str, filesep), 'file');
-    end
+str = get_user_dir('Sophus', @(p) exist(sprintf('%ssophus%sse3.hpp', p, filesep), 'file'));
+str = sprintf('-I"%s"', str(1:end-1));
 end
 
 % Add the liegroups library
 function [str, co] = liegroups(debug)
 co = '';
-liegroups_path_str = user_string('liegroups_path');
-if ~check_path()
-    % Ask the user to enter the path
-    while 1
-        liegroups_path_str = ask_user_for_directory('liegroups');
-        if check_path()
-            user_string('liegroups_path', liegroups_path_str);
-            break;
-        end
-    end
-end
+str = get_user_dir('liegroups', @(p) exist(sprintf('%sse3.hpp', p), 'file'));
 if debug
-    str = 'Debug';
+    debug = 'Debug';
 else
-    str = 'Release';
+    debug = 'Release';
 end
-str = sprintf('-I"%s/.." -L"%s/build/%s" -lliegroups', liegroups_path_str, liegroups_path_str, str);
-% Nested function
-    function good = check_path
-        % Check the path is valid
-        good = exist(sprintf('%s/se3.hpp', liegroups_path_str), 'file');
-    end
+str = sprintf('-I"%s/.." -L"%s/build/%s" -lliegroups', str, str, debug);
 end
 
 % Add the ojwul include directory
