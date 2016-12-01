@@ -344,6 +344,14 @@ classdef autodiff
             [varargout{1:nargout}] = size(a.value, varargin{:});
         end
         
+        function c = length(a)
+            if isempty(a)
+                c = 0;
+            else
+                c = max(size(a));
+            end
+        end
+        
         function c = ndims(a)
             c = ndims(a.value);
         end
