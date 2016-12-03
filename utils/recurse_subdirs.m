@@ -24,13 +24,14 @@ end
 [varargout{1:nargout}] = deal({});
 % Run on this directory
 try
+    fprintf('%s ...', base);
     if nargout == 0
         func(base);
     else
         [varargout{1:nargout}] = func(base);
         varargout = cellfun(@(v) {{v}}, varargout);
     end
-    fprintf('Successfully done: %s\n', base);
+    fprintf('    DONE\n');
 catch me
     fprintf(getReport(me));
 end
