@@ -24,12 +24,12 @@ assert(isscalar(h), 'Only one handle expected');
 
 % Set the 'UserData' property of this object
 if nargin == 2
-    set(h, 'UserData', varargin{1});
+    varargin = varargin{1};
 else
     varargin = reshape(varargin, 2, []);
     assert(all(cellfun(@ischar, varargin(1,:))), 'Name, value pairs expected');
-    set(h, 'UserData', varargin);
 end
+set(h, 'UserData', varargin, 'Tag', 'add_datatip');
 
 % Set the data tip function
 set(datacursormode(ancestor(h, 'Figure')), 'UpdateFcn', @datatip_txtfun);
@@ -37,16 +37,28 @@ end
 
 function str = datatip_txtfun(~, h)
 X = h.Position';
-Y = [h.Target.XData; h.Target.YData];
-if numel(X) == 3
-    Y = [Y; h.Target.ZData];
+% Query all the datatip objects
+objs = findobj(ancestor(h.Target, 'Axes'), 'Tag', 'add_datatip');
+Z = NaN(size(X, 1), 1);
+md = Inf;
+for a = 1:numel(objs)
+    if numel(X) == 3
+        Y = [objs(a).XData; objs(a).YData; objs(a).ZData];
+    else
+        Y = [objs(a).XData; objs(a).YData];
+    end
+    [d, id] = sqdist2closest(X, Y);
+    if d < md
+        md = d;
+        Z = Y(:,id);
+        h = objs(a);
+    end
 end
-[~, id] = sqdist2closest(X, Y);
-str = struct('X', h.Target.XData(id), 'Y', h.Target.YData(id));
+str = struct('X', Z(1), 'Y', Z(2));
 if numel(X) == 3
-    str.Z = h.Target.ZData(id);
+    str.Z = Z(3);
 end
-data = h.Target.UserData;
+data = h.UserData;
 if ~isempty(data)
     if iscell(data)
         for a = 1:2:numel(data)
