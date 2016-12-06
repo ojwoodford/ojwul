@@ -36,9 +36,17 @@ set(datacursormode(ancestor(h, 'Figure')), 'UpdateFcn', @datatip_txtfun);
 end
 
 function str = datatip_txtfun(~, h)
-[~, id] = sqdist2closest(h.Position', [h.Target.XData; h.Target.YData]);
+X = h.Position';
+Y = [h.Target.XData; h.Target.YData];
+if numel(X) == 3
+    Y = [Y; h.Target.ZData];
+end
+[~, id] = sqdist2closest(X, Y);
 data = h.Target.UserData;
 str = struct('X', h.Target.XData(id), 'Y', h.Target.YData(id));
+if numel(X) == 3
+    str.Z = h.Target.ZData(id);
+end
 if ~isempty(data)
     if iscell(data)
         for a = 1:2:numel(data)
