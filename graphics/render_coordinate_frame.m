@@ -20,4 +20,6 @@ for a = 3:-1:1
     X = reshape(cat(1, O, O+rshp(P(:,a,:)), N), [], 3);
     h(a) = plot3(X(:,1), X(:,2), X(:,3), 'r-', 'Color', colour{a});
 end
+O = reshape(O, [], 3);
+add_datatip(plot3(O(:,1), O(:,2), O(:,3), 'ks'), 'ID', 1:size(O, 1));
 end
