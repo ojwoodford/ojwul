@@ -35,30 +35,46 @@ set(h, 'UserData', varargin, 'Tag', 'add_datatip');
 set(datacursormode(ancestor(h, 'Figure')), 'UpdateFcn', @datatip_txtfun);
 end
 
-function str = datatip_txtfun(~, h)
-X = h.Position';
-% Query all the datatip objects
-objs = findobj(ancestor(h.Target, 'Axes'), 'Tag', 'add_datatip');
-Z = NaN(size(X, 1), 1);
-md = Inf;
-for a = 1:numel(objs)
+function str = datatip_txtfun(obj, event)
+X = event.Position';
+if strcmp(event.Target.Tag, 'add_datatip')
+    hTarg = event.Target;
     if numel(X) == 3
-        Y = [objs(a).XData; objs(a).YData; objs(a).ZData];
+        Y = [hTarg.XData; hTarg.YData; hTarg.ZData];
     else
-        Y = [objs(a).XData; objs(a).YData];
+        Y = [hTarg.XData; hTarg.YData];
     end
-    [d, id] = sqdist2closest(X, Y);
-    if d < md
-        md = d;
-        Z = Y(:,id);
-        h = objs(a);
+    [~, id] = sqdist2closest(X, Y);
+    Z = Y(:,id);
+else
+    % Query all the datatip objects
+    objs = findobj(ancestor(event.Target, 'Axes'), 'Tag', 'add_datatip');
+    Z = NaN(size(X, 1), 1);
+    md = Inf;
+    for a = 1:numel(objs)
+        if numel(X) == 3
+            Y = [objs(a).XData; objs(a).YData; objs(a).ZData];
+        else
+            Y = [objs(a).XData; objs(a).YData];
+        end
+        [d, id] = sqdist2closest(X, Y);
+        if d < md
+            md = d;
+            Z = Y(:,id);
+            hTarg = objs(a);
+        end
+        if d == 0
+            break;
+        end
     end
+    % Set the data cursor position
+    obj.Cursor.Position = Z';
 end
 str = struct('X', Z(1), 'Y', Z(2));
 if numel(X) == 3
     str.Z = Z(3);
 end
-data = h.UserData;
+data = hTarg.UserData;
 if ~isempty(data)
     if iscell(data)
         for a = 1:2:numel(data)
