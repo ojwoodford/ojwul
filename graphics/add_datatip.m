@@ -92,26 +92,29 @@ if numel(X) == 3
 end
 data = hTarg.UserData;
 if ~isempty(data)
-    N = numel(data) - isa(data{end}, 'function_handle');
-    if N > 1
-        for a = 1:2:N
-            if iscell(data{a+1})
-                str.(data{a}) = data{a+1}{id};
+    try
+        N = numel(data) - isa(data{end}, 'function_handle');
+        if N > 1
+            for a = 1:2:N
+                if iscell(data{a+1})
+                    str.(data{a}) = data{a+1}{id};
+                else
+                    str.(data{a}) = data{a+1}(:,id)';
+                end
+            end
+        else
+            if iscell(data{1})
+                str.Data = data{1}{id};
             else
-                str.(data{a}) = data{a+1}(:,id)';
+                str.Data = data{1}(:,id)';
             end
         end
-    else
-        data = data{1};
-        if iscell(data)
-            str.Data = data{id};
-        else
-            str.Data = data(:,id)';
+        if N ~= numel(data)
+            % Call the callback
+            data{end}(str);
         end
-    end
-    if N ~= numel(data)
-        % Call the callback
-        data{end}(str);
+    catch
+        fprintf('%s\n', getReport(me));
     end
 end
 str = regexprep(evalc('disp(str)'), '\n *', '\n');
