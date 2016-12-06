@@ -1,10 +1,13 @@
 %ADD_DATATIP Add datatip data to graphical objects
 %
+%   h = add_datatip(h, callback_func, value)
 %   h = add_datatip(h, value)
 %   h = add_datatip(h, 'Name', value, ...)
+%   h = add_datatip(h, callback_func, value)
+%   h = add_datatip(h, callback_func, 'Name', value, ...)
 %
 % Example:
-%   add_datatip(plot(rand(3, 1)), 'Name', {'Tom', 'Dick', 'Harry'});
+%   add_datatip(plot(rand(3, 1)), @disp, 'Name', {'Tom', 'Dick', 'Harry'});
 %
 % Add data to graphical objects, for querying using datatips.
 %
@@ -15,6 +18,8 @@
 %           selected.
 %   'Name' - String indicating the name of the data value, so that
 %            name/value pairs can be used.
+%   callback_func - Handle to callback function called with a structure
+%                   holding the data as input.
 %
 %OUT:
 %   h - The input scalar graphics handle, for inline usage (see example).
@@ -22,29 +27,40 @@
 function h = add_datatip(h, varargin)
 assert(isscalar(h), 'Only one handle expected');
 
-% Set the 'UserData' property of this object
-if nargin == 2
-    varargin = varargin{1};
+% Check for a callback
+if isa(varargin{1}, 'function_handle')
+    callback = varargin(1);
+    varargin = varargin(2:end);
 else
+    callback = {};
+end
+
+% Check we have name value pairs
+if numel(varargin) > 1
     varargin = reshape(varargin, 2, []);
     assert(all(cellfun(@ischar, varargin(1,:))), 'Name, value pairs expected');
 end
-set(h, 'UserData', varargin, 'Tag', 'add_datatip');
+
+% Set the 'UserData' property of this object
+set(h, 'UserData', [varargin(:); callback], 'Tag', 'add_datatip');
 
 % Set the data tip function
 set(datacursormode(ancestor(h, 'Figure')), 'UpdateFcn', @datatip_txtfun);
 end
 
 function str = datatip_txtfun(obj, event)
+% Get the position of the object that was clicked
 X = event.Position';
+%Check if this has an add_datatip structure
 if strcmp(event.Target.Tag, 'add_datatip')
+    % Find the point that was clicked
     hTarg = event.Target;
     if numel(X) == 3
         Y = [hTarg.XData; hTarg.YData; hTarg.ZData];
     else
         Y = [hTarg.XData; hTarg.YData];
     end
-    [~, id] = sqdist2closest(X, Y);
+    [md, id] = sqdist2closest(X, Y);
     Z = Y(:,id);
 else
     % Query all the datatip objects
@@ -63,7 +79,7 @@ else
             Z = Y(:,id);
             hTarg = objs(a);
         end
-        if d == 0
+        if md == 0
             break;
         end
     end
@@ -76,8 +92,9 @@ if numel(X) == 3
 end
 data = hTarg.UserData;
 if ~isempty(data)
-    if iscell(data)
-        for a = 1:2:numel(data)
+    N = numel(data) - isa(data{end}, 'function_handle');
+    if N > 1
+        for a = 1:2:N
             if iscell(data{a+1})
                 str.(data{a}) = data{a+1}{id};
             else
@@ -85,11 +102,16 @@ if ~isempty(data)
             end
         end
     else
+        data = data{1};
         if iscell(data)
             str.Data = data{id};
         else
             str.Data = data(:,id)';
         end
+    end
+    if N ~= numel(data)
+        % Call the callback
+        data{end}(str);
     end
 end
 str = regexprep(evalc('disp(str)'), '\n *', '\n');
