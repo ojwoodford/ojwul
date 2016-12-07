@@ -164,7 +164,7 @@ public:
             }
 		} else {
 			// Out of bounds
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch) {
+			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch) {
                 *B = IM_BASE<T, U, V>::oobv;
                 G[0] = U(0);
                 G[1] = U(0);
@@ -303,7 +303,7 @@ public:
             }
 		} else {
 			// Out of bounds
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch) {
+			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch) {
                 *B = IM_BASE<T, U, V>::oobv;
                 G[0] = U(0);
                 G[1] = U(0);
