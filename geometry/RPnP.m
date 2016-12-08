@@ -14,13 +14,13 @@
 %   x - 2xN projected coordinates, i.e. proj(P * [X; ones(1, N)]).
 %
 %OUT:
-%   P - 3x4 [R, t] rigid transform matrix, where R is a rotation matrix and
-%       t is a translation matrix.
-%   err - Scalar sum of squared reprojection errors.
+%   P - 3x4xN array of [R, t] rigid transform matrices, where R is a
+%       rotation matrix and t is a translation matrix.
+%   err - Scalar sum of squared reprojection errors for the output poses.
 
-function [P, minr] = RPnP(X, xx)
-P = [];
-minr = Inf;
+function [P, err] = RPnP(X, xx)
+P = zeros(3, 4, 0);
+err = [];
 
 [nd, n] = size(xx);
 xv = normalize([xx; ones(1, n)]);
@@ -104,7 +104,7 @@ end
 
 % calculating the camera pose from each local minimum.
 m = length(t2s);
-for i = 1:m
+for i = m:-1:1
     % calculating the rotation matrix
     Rx = x2R(v2 * (cg1 + t2s(i)) - v1);
     
@@ -137,19 +137,18 @@ for i = 1:m
     XXc = bsxfun(@times, xv, normd(XXcs, 1));
     
     [R, t] = calcampose(XXc,X);
+    P(:,:,i) = [R t];
     
     % Calculate the reprojection error
     r = bsxfun(@plus, R * X, t);
     r = [proj(r) - xx; min(r(3,:), 0)]; % Don't allow negative points
-    r = r(:)' * r(:);
-    
-    % Keep the smallest reprojection error
-    if r > minr
-        continue;
-    end
-    minr = r;
-    P = [R t];
+    err(i) = r(:)' * r(:);
 end
+
+% Keep the smallest n poses
+M = err < (min(err) * 1.1 + 1e-6);
+err = err(M);
+P = P(:,:,M);
 end
 
 
