@@ -42,6 +42,10 @@ classdef autodiff
             c = obj.varind;
         end
         
+        function disp(obj)
+            disp(obj.value);
+        end
+        
         % Elementwise operators
         function c = plus(a, b)
             [c, v] = combine_grads(grad(a), grad(b), var_indices(a), var_indices(b), 'add');
