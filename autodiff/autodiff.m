@@ -16,7 +16,8 @@ classdef autodiff
                     obj.deriv = b;
                     %assert(isequal(size(b), [numel(obj.varind) size(a)]));
                 else
-                    obj.deriv = reshape(eye(numel(a)), [numel(a) size(a)]);
+                    % We assume that there is 1 varind per element in a
+                    obj.deriv = reshape(eye(numel(v)), [numel(a) size(a)]);
                 end
             else
                 obj.varind = 1:numel(a);
@@ -42,8 +43,8 @@ classdef autodiff
             c = obj.varind;
         end
         
-        function disp(obj)
-            disp(obj.value);
+        function disp(obj, varargin)
+            disp(obj.value, varargin{:});
         end
         
         % Elementwise operators
@@ -283,10 +284,15 @@ classdef autodiff
             assert(strcmp(s.type, '()'));
             c = double(a);
             c(s.subs{:}) = double(b);
-            d = grad(a);
+            v = unique([var_indices(a) var_indices(b)]);
+            d = grad(a, v);
             s_ = [{':'} s.subs];
-            d(s_{:}) = grad(b);
-            c = autodiff(c, a.varind, d);
+            d_ = grad(b, v);
+            if isscalar(b)
+                d_ = repmat(d_, [1 size(c(s.subs{:}))]);
+            end
+            d(s_{:}) = d_;
+            c = autodiff(c, v, d);
         end
         
         % Array concatenation
@@ -415,7 +421,6 @@ if ischar(M)
             func = @times;
             fill = 1;
     end
-    M = [];
 else
     func = @plus;
     fill = 0;
@@ -435,7 +440,7 @@ if isequal(va, vb)
     v = va;
     return;
 end
-v = unique(va, vb);
+v = unique([va vb]);
 c = bsxfun(func, expand_array(ga, va, v, fill), expand_array(gb, vb, v, fill));
 end
 
