@@ -11,6 +11,7 @@
 %   B - 3x4xN array of inverse SE3 matrices.
 
 function T = invSE3n(T)
-T(:,1:3,:) = permute(T(:,1:3,:), [2 1 3]); % Transpose the R matrix
-T(:,4,:) = tmult(T(:,1:3,:), -T(:,4,:)); % Compute R' * -T
+R = permute(T(1:3,1:3,:), [2 1 3]); % Transpose the R matrix
+T(1:3,1:3,:) = R;
+T(1:3,4,:) = tmult(R, -T(1:3,4,:)); % Compute R' * -T
 end
