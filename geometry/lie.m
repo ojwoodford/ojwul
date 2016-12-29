@@ -55,7 +55,8 @@ classdef lie
         % LOG - Convert from transform to Lie matrix to Lie tangent space
         function tangent = log(this, transform)
             [~, ~, N] = size(transform);
-            for a = N:-1:1
+            tangent = this.vee(logm(transform(:,:,1))); % Hack for non-numeric types, e.g. autodiff
+            for a = N:-1:2
                 tangent(:,a) = this.vee(logm(transform(:,:,a)));
             end
         end
@@ -68,13 +69,9 @@ classdef lie
         % EXP - Convert from Lie tangent space to transform
         function transform = exp(this, tangent)
             [~, N] = size(tangent);
-            if N == 1
-                % Hack for non-numeric types, e.g. autodiff
-                transform = expm(this.hat(tangent));
-                return;
-            end
-            for a = N:-1:1
-                transform(:,:,N) = expm(this.hat(tangent(:,a)));
+            transform = expm(this.hat(tangent(:,1))); % Hack for non-numeric types, e.g. autodiff
+            for a = N:-1:2
+                transform(:,:,a) = expm(this.hat(tangent(:,a)));
             end
         end
         
