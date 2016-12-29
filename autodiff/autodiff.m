@@ -36,7 +36,7 @@ classdef autodiff
             end
             c = zeros([numel(vars) size(obj.value)]);
             [Lia, Locb] = ismember(vars, obj.varind);
-            c(Lia,:) = obj.deriv(Locb,:);
+            c(Lia,:) = obj.deriv(Locb(Lia),:);
         end
         
         function c = var_indices(obj)
@@ -157,19 +157,18 @@ classdef autodiff
             end
             da = double(a);
             db = double(b);
-            if isautodiff(b)
-                v = b.varind;
-                c = sum(bsxfun(@times, shiftdim(da, -1), permute(b.deriv, [1 4 2 3])), 3);
-                if isautodiff(a)
-                    c = c + sum(bsxfun(@times, a.deriv, shiftdim(db, -2)), 3);
-                end
-                c = reshape(c, [size(b.deriv, 1) size(da, 1) size(db, 2)]);
+            c = da * db;
+            v = unique([var_indices(a) var_indices(b)]);
+            sz = [numel(v) size(c)];
+            if isautodiff(a)
+                g = reshape(sum(bsxfun(@times, grad(a, v), shiftdim(db, -2)), 3), sz);
             else
-                v = a.varind;
-                c = sum(bsxfun(@times, a.deriv, shiftdim(db, -2)), 3);
-                c = reshape(c, [size(a.deriv, 1) size(da, 1) size(db, 2)]);
+                g = 0;
             end
-            c = autodiff(da * db, v, c);
+            if isautodiff(b)
+                g = g + reshape(sum(bsxfun(@times, shiftdim(da, -1), permute(grad(b, v), [1 4 2 3])), 3), sz);
+            end
+            c = autodiff(c, v, g);
         end
         
         function c = inv(a)
