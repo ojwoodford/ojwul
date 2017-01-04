@@ -209,37 +209,23 @@ classdef autodiff
         function c = select(a, b, M)
             da = double(a);
             db = double(b);
-            if isscalar(da)
-                da = repmat(da, size(db));
-            end
-            if isscalar(db)
+            v = unique([var_indices(a) var_indices(b)]);
+            ga = grad(a, v);
+            gb = grad(b, v);
+            if isscalar(a)
+                M = ~M;
+                db(M) = da;
+                gb(:,M) = repmat(ga, [1 sum(M(:))]);
+                c = autodiff(db, v, gb);
+            elseif isscalar(b)
                 da(M) = db;
+                ga(:,M) = repmat(gb, [1 sum(M(:))]);
+                c = autodiff(da, v, ga);
             else
                 da(M) = db(M);
+                ga(:,M) = gb(:,M);
+                c = autodiff(da, v, ga);
             end
-            if isautodiff(a)
-                ga = reshape(a.deriv, [], numel(da));
-                if isscalar(da)
-                    ga = repmat(ga, [1 numel(db)]);
-                end
-                if isautodiff(b)
-                    gb = reshape(b.deriv, [], numel(db));
-                    if isscalar(db)
-                        ga(:,M) = repmat(gb, [1, sum(M(:))]); 
-                    else
-                        ga(:,M) = gb(:,M);
-                    end
-                else
-                    ga(:,M) = 0;
-                end
-            else
-                ga = reshape(b.deriv, [], numel(db));
-                if isscalar(db)
-                    ga = repmat(ga, [1 numel(da)]);
-                end
-                ga(:,~M) = 0;
-            end
-            c = autodiff(da, v, reshape(ga, [size(ga, 1) size(da)]));
         end
         
         function [c, d] = min(a, b, dim)
