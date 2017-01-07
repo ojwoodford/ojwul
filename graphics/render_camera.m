@@ -84,7 +84,11 @@ normals(faces(:,1),:) = N';
 % Render
 if nargin < 3
     colour = [0.5 0.5 0.5];
-elseif size(colour, 1) == size(P, 3) && size(colour, 2) == 3
+end
+if ischar(colour)
+    colour = str2color(colour);
+end
+if size(colour, 1) == size(P, 3) && size(colour, 2) == 3
     colour = repmat(shiftdim(colour, -1), [nSegments+12 1 1]);
     colour = reshape(colour, [], 3);
 end
