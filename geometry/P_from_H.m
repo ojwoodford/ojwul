@@ -1,4 +1,4 @@
-%P_FROM_H Compute motion hypotheses from a homography or 2D correspondences
+%P_FROM_H Compute motion hypotheses from a homography
 %
 %   P = P_from_H(H)
 %

@@ -160,7 +160,7 @@ M(10,7) = 1;
 SOLS = V(7:9,:)./(ones(3,1)*V(10,:));
 end
 
-Evec = EE*[SOLS ; ones(1,10) ]; 
+Evec = EE*homg(SOLS); 
 Evec = Evec./ ( ones(9,1)*sqrt(sum( Evec.^2)));
 
 Evec = permute(reshape(Evec(:,~imag(Evec(1,:))), 3, 3, []), [2 1 3]);
