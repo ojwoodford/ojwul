@@ -10,7 +10,7 @@
 %   P - 3x4xN array of N potential extrinsic matrices [R, t] (up to scale).
 
 function P = P_from_H(H)
-% This transcodes the C++ implementation from ORB-SLAM
+% Use the method of Faugeras for homography decomposition
 % Do the SVD of H
 [U, S, V] = svd(H);
 P = zeros(3, 4, 0);
