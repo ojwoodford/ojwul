@@ -51,7 +51,7 @@ end
 function str = datatip_txtfun(obj, event)
 % Get the position of the object that was clicked
 X = event.Position';
-%Check if this has an add_datatip structure
+% Check if this has an add_datatip structure
 if strcmp(event.Target.Tag, 'add_datatip')
     % Find the point that was clicked
     hTarg = event.Target;
@@ -113,8 +113,8 @@ if ~isempty(data)
             % Call the callback
             data{end}(str);
         end
-    catch
-        fprintf('%s\n', getReport(me));
+    catch me
+        fprintf('Error in datatip callback: %s\n', getReport(me, 'basic'));
     end
 end
 str = regexprep(evalc('disp(str)'), '\n *', '\n');
