@@ -7,17 +7,19 @@
 %       K^-1 * X2 = H * K^-1 * X1
 %
 %OUT:
-%   P - 3x4xN array of N potential extrinsic matrices [R, t] (up to scale).
+%   P - 3x4xM array of M potential extrinsic matrices [R, t] (up to scale).
+%   N - 3xM array of corresponding plane normals 
 
-function P = P_from_H(H)
+function [P, N] = P_from_H(H)
 % Use the method of Faugeras for homography decomposition
 % Do the SVD of H
 [U, S, V] = svd(H);
-P = zeros(3, 4, 0);
+P = eye(3, 4);
 
 % Check all 3 singular values are sufficiently different
 S = diag(S);
 if any(S([1 2]) ./ S([2 3]) < 1.00001)
+    N = zeros(3, 1);
     return;
 end
 
@@ -47,4 +49,12 @@ R1 = s * U * [ctheta 0 stheta; 0 -1 0; stheta 0 -ctheta] * V;
 R2 = s * U * [ctheta 0 -stheta; 0 -1 0; -stheta 0 -ctheta] * V;
 
 P = cat(3, P, [R1 T(:,1)], [R2 T(:,2)], [R2 T(:,3)], [R1 T(:,4)]);
+if nargout < 2
+    return
+end
+% Compute the normal equations
+H = H / median(S);
+for a = 8:-1:1
+    N(:,a) = P(:,4,a) \ (H - P(:,1:3,a));
+end
 end
