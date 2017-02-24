@@ -16,7 +16,7 @@
 %
 % but is completely vectorized, so much faster. Tmult also supports
 % bsxfun-style expansion of singular dimensions where appropriate, such
-% that tmult(rand(1, 3, 10), rand(3, 3)) yields a 1x3x10 output.
+% that tmult(rand(4, 3, 10), rand(3, 2)) yields a 4x2x10 output.
 %
 %IN:
 %   A - PxQx... array of input PxQ matrices, or QxP if transposed.
@@ -87,4 +87,3 @@ szB = [szB ones(1, numel(szA)-numel(szB))];
 szB(3:end) = max(szB(3:end), szA(3:end));
 A = reshape(A, szB);
 end
-
