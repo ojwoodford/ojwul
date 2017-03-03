@@ -36,7 +36,8 @@ bestM = [];
 bestD = [];
 [~, nPoints] = size(X);
 if nPoints < minSamples
-    return
+    stats = zeros(1, 3);
+    return;
 end
 
 numTrials = 0;
