@@ -55,6 +55,6 @@ end
 % Compute the normal equations
 H = H / median(S);
 for a = 8:-1:1
-    N(:,a) = P(:,4,a) \ (H - P(:,1:3,a));
+    N(:,a) = P(:,4,a) \ (P(:,1:3,a) - H);
 end
 end
