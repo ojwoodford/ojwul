@@ -14,15 +14,16 @@ function [P, N] = P_from_H(H)
 % Use the method of Faugeras for homography decomposition
 % Do the SVD of H
 [U, S, V] = svd(H);
-P = eye(3, 4);
 
 % Check all 3 singular values are sufficiently different
 S = diag(S);
 if any(S([1 2]) ./ S([2 3]) < 1.00001)
     N = zeros(3, 1);
+    P = eye(3, 4);
     return;
 end
 
+% Compute first set
 s = det(U) * det(V);
 V = V';
 S2 = S .* S;
@@ -39,6 +40,7 @@ R2 = s * U * [ctheta 0 stheta; 0 1 0; -stheta 0 ctheta] * V;
 
 P = cat(3, [R1 T(:,1)], [R2 T(:,2)], [R2 T(:,3)], [R1 T(:,4)]);
 
+% Compute second set
 tp(3,:) = -tp(3,:);
 T = normalize(U * tp * (S(1) + S(3)));
 
@@ -52,7 +54,7 @@ P = cat(3, P, [R1 T(:,1)], [R2 T(:,2)], [R2 T(:,3)], [R1 T(:,4)]);
 if nargout < 2
     return
 end
-% Compute the normal equations
+% Compute the normal
 H = H / median(S);
 for a = 8:-1:1
     N(:,a) = P(:,4,a) \ (P(:,1:3,a) - H);
