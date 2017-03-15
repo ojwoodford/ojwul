@@ -100,7 +100,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int nLabels, nNodes, nChains, a, n, Eoffset, Eoff;
     const void *U, *E;
     void *en = NULL;
-    const int *dims;
+    const mwSize *dims;
     int32_t *L;
     mxClassID classid;
     

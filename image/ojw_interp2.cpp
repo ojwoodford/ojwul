@@ -149,7 +149,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     out_dims[0] = 2;
 	out_dims[1] = mxGetM(prhs[1]);
 	out_dims[2] = mxGetN(prhs[1]);
-	const int *dims = mxGetDimensions(prhs[0]);
+	const mwSize *dims = mxGetDimensions(prhs[0]);
 	out_dims[3] = 1;
 	int nchannels = 1;
 	for (int i = 2; i < ndims; ++i) {

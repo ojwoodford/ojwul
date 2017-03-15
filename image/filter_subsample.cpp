@@ -82,7 +82,7 @@ template<class U, class T> static inline U saturate_cast(T val)
 template<class T, class U> static inline void filter_subsample(const mxArray *prhs[], mxArray *plhs[], mxClassID in_class)
 {
 	// Get input data and sizes
-	const int *in_dims = mxGetDimensions(prhs[0]);
+	const mwSize *in_dims = mxGetDimensions(prhs[0]);
 	size_t out_dims[3];
 	out_dims[0] = (in_dims[0] + 1) / 2;
 	out_dims[1] = (in_dims[1] + 1) / 2;

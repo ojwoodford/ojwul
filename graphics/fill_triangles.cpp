@@ -11,7 +11,7 @@ template<class T> static void FillTriangle(const T *xyv, T *img, T *tmp_buf, int
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-	const int		*dim;
+	const mwSize    *dim;
 	int				id, iw, ih, ntri, i;
 	int 			zbuff;
     mxArray         *out_array;

@@ -132,7 +132,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	size_t out_dims[20];
 	out_dims[0] = 3;
 	out_dims[1] = 3 + (nparams != 3);
-	const int *dims = mxGetDimensions(prhs[0]);
+	const mwSize *dims = mxGetDimensions(prhs[0]);
 	int nmatrices = 1;
 	for (int a = 1; a < ndims; ++a) {
 		out_dims[a+1] = dims[a];
