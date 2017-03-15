@@ -22,8 +22,7 @@
 %   M - 3x(3+D~=3)xN array of transformation matrices.
 */
 
-#include <math.h>
-#include <stdlib.h>
+#include <cmath>
 
 // out - pointer to a column major matrix of size 3x4, or 3x3 if t==NULL.
 // r - pointer to a 3 element vector of rotation components (x, y, z).
@@ -34,9 +33,9 @@ template<class REAL> void expm_srt_3d(REAL *out, const REAL *r, const REAL *t=NU
     // First compute the rotation part
     // Angle of rotation
     REAL theta2 = r[0] * r[0] + r[1] * r[1] + r[2] * r[2];
-    REAL theta = sqrt(theta2);
-    REAL cos_theta = cos(theta);
-    REAL sin_theta = sin(theta);
+    REAL theta = std::sqrt(theta2);
+    REAL cos_theta = std::cos(theta);
+    REAL sin_theta = std::sin(theta);
     REAL cosf = REAL(0.5);
     REAL sinc = REAL(1.0);
     if (theta2 > REAL(2.23e-16)) {
@@ -68,14 +67,14 @@ template<class REAL> void expm_srt_3d(REAL *out, const REAL *r, const REAL *t=NU
     // Multiply by scale
     REAL exp_s = REAL(1.0);
     if (s) {
-        exp_s = exp(s);
+        exp_s = std::exp(s);
         for (int a = 0; a < 9; ++a)
             out[a] = exp_s * out[a];
     }
     
     // Now compute the translation part
     if (t) {
-        REAL exp_sa = abs(s) < REAL(1.0e-10) ? REAL(1.0) : (exp_s - REAL(1.0)) / s;
+        REAL exp_sa = std::abs(s) < REAL(1.0e-10) ? REAL(1.0) : (exp_s - REAL(1.0)) / s;
         REAL eta_r, eta_i;
         theta2 += REAL(1e-38); // Avoid divides by 0
         if (s) {
