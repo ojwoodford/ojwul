@@ -424,6 +424,13 @@ str = get_user_dir('Ceres', @(p) exist(sprintf('%sinclude%sceres%sceres.h', p, f
 str = sprintf('-I"%sinclude" -L"%slib" -lceres', str, str);
 end
 
+% Add the Suite Sparse library directory
+function [str, co] = suitesparse(debug)
+co = '';
+str = get_user_dir('SuiteSparse', @(p) exist(sprintf('%sinclude%sSuiteSparse_config.h', p, filesep), 'file'));
+str = sprintf('-I"%sinclude" -L"%slib" -lcholmod', str, str);
+end
+
 % Add the glog library directory
 function [str, co] = glog(debug)
 co = '';
