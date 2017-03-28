@@ -15,6 +15,15 @@ classdef lie
                         generators(2,3,2) = 1;
                         generators(1,2,3) = -1;
                         generators(2,1,3) = 1;
+                    case 'aff2'
+                        % Generators for aff2 (2D affine transformation)
+                        generators = zeros(3, 3, 6);
+                        generators(1,3,1) = 1;
+                        generators(2,3,2) = 1;
+                        generators(1,2,3) = 1;
+                        generators(2,1,4) = 1;
+                        generators(1,1,5) = 1;
+                        generators(2,2,6) = 1;
                     case 'so3'
                         generators = so3();
                     case 'se3'
