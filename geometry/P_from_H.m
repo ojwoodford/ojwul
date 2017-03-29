@@ -10,7 +10,7 @@
 %   P - 3x4xM array of M potential extrinsic matrices [R, t] (up to scale).
 %   N - 3xM array of corresponding plane normals 
 
-function [P, N] = P_from_H(H)
+function [P, N, H] = P_from_H(H)
 % Use the method of Faugeras for homography decomposition
 % Do the SVD of H
 [U, S, V] = svd(H);
@@ -57,6 +57,6 @@ end
 % Compute the normal
 H = H / median(S);
 for a = 8:-1:1
-    N(:,a) = P(:,4,a) \ (P(:,1:3,a) - H);
+    N(:,a) = P(:,4,a) \ (H - P(:,1:3,a));
 end
 end
