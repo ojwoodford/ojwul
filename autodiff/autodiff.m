@@ -190,7 +190,8 @@ classdef autodiff
         end
         
         % Reduction methods: Sum, prod, min, max
-        function c = sum(a, dim)
+        function c = sum(a, dim, flag)
+            assert(nargin < 3 || strcmp(flag, 'default'), 'Only default option supported');
             if nargin < 2
                 dim = first_nonsingleton_dim(a);
             end
