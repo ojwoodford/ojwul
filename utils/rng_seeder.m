@@ -13,7 +13,7 @@
 %   seed - scalar seed used to initialize the random number generator.
 
 function seed = rng_seeder(seed)
-if nargin < 1
+if nargin < 1 || isempty(seed)
     rng('shuffle');
     seed = ceil(rand(1) * (2^31));
     if nargout < 1
