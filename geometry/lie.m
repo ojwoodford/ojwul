@@ -18,12 +18,16 @@ classdef lie
                     case 'aff2'
                         % Generators for aff2 (2D affine transformation)
                         generators = zeros(3, 3, 6);
-                        generators(1,3,1) = 1;
-                        generators(2,3,2) = 1;
-                        generators(1,2,3) = 1;
-                        generators(2,1,4) = 1;
-                        generators(1,1,5) = 1;
-                        generators(2,2,6) = 1;
+                        generators(1,3,1) = 1; % X translation
+                        generators(2,3,2) = 1; % Y translation
+                        generators(1,2,3) = -1; % Rotation
+                        generators(2,1,3) = 1;
+                        generators(1,1,4) = 1; % Uniform scale
+                        generators(2,2,4) = 1;
+                        generators(1,1,5) = 1; % Aspect ratio
+                        generators(2,2,5) = -1;
+                        generators(1,2,6) = 1; % Shear
+                        generators(2,1,6) = 1;
                     case 'so3'
                         generators = so3();
                     case 'se3'
