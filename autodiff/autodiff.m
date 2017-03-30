@@ -171,6 +171,22 @@ classdef autodiff
             c = autodiff(c, v, g);
         end
         
+        function c = mrdivide(a, b)
+            if isscalar(a) || isscalar(b)
+                c = rdivide(a, b);
+                return;
+            end
+            error('Matrix divides not yet supported in autodiff. Use inv if possible.');
+        end
+        
+        function c = mldivide(a, b)
+            if isscalar(a) || isscalar(b)
+                c = ldivide(a, b);
+                return;
+            end
+            error('Matrix divides not yet supported in autodiff. Use inv if possible.');
+        end
+        
         function c = inv(a)
             c = inv(a.value);
             sz = [size(a.deriv) 1];
