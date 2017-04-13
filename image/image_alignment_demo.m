@@ -4,11 +4,10 @@
 %
 % This function demonstrates image alignment via a homography, using
 % various techniques:
-%   - Lie algebra: a Lie representation of homography updates
-%   - Auto differentiation: automatically compute the Jacobian of residuals
-%   - Gauss-Newton: gradient descent with automatic step size computation
-%   - Analytic image gradients: fast image and gradient sampling using
-%       ojw_interp2.
+%   - Lie algebra: a Lie representation of homography updates.
+%   - Auto differentiation: automatically compute the Jacobian of residuals.
+%   - Gauss-Newton: gradient descent with automatic step size computation.
+%   - Analytic image gradients: fast image & gradient sampling using ojw_interp2.
 
 function image_alignment_demo(A)
 if nargin < 1
@@ -30,8 +29,8 @@ sl3 = lie('sl3');
 % Create a cost function
 H = eye(3);
 for a = 1:100
-    % The magic line!!!!
-    dH = autodiff(zeros(8, 1));
+    % Create a delta vector of 8 variables
+    dH = autodiff(zeros(8, 1)); % The magic line!!!!
     
     % Compute the homgraphy update
     dH = exp(sl3, dH);
