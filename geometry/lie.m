@@ -30,6 +30,8 @@ classdef lie
                         generators(2,1,6) = 1;
                     case 'so3'
                         generators = so3();
+                    case 'rxso3'
+                        generators = rxso3();
                     case 'se3'
                         % Generators for se3
                         generators = zeros(4, 4, 6);
@@ -38,6 +40,14 @@ classdef lie
                         generators(3,4,3) = 1;
                         generators(3,2,4) = 1;
                         generators(1:3,1:3,4:6) = so3();
+                    case 'sim3'
+                        % Generators for sim3
+                        generators = zeros(4, 4, 7);
+                        generators(1,4,1) = 1;
+                        generators(2,4,2) = 1;
+                        generators(3,4,3) = 1;
+                        generators(3,2,4) = 1;
+                        generators(1:3,1:3,4:7) = rxso3();
                     case 'sl3'
                         % Generators for sl3
                         % From "Homography-based 2D Visual Tracking and
@@ -124,5 +134,13 @@ G(1,3,2) = 1;
 G(3,1,2) = -1;
 G(1,2,3) = -1;
 G(2,1,3) = 1;
+end
+
+function G = rxso3()
+% Generators for rxso3
+G = so3();
+G(1,1,4) = 1;
+G(2,2,4) = 1;
+G(3,3,4) = 1;
 end
        
