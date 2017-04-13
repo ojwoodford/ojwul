@@ -1,4 +1,4 @@
-function test_autodiff()
+function image_alignment_demo()
 
 % Load an image
 A = imread('peppers.png');
