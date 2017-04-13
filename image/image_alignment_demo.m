@@ -17,7 +17,7 @@ sz = size(A);
 
 % Create a target image
 [y, x] = ndgrid(linspace(sz(1)/2-50, sz(1)/2+50, 100), linspace(sz(2)/2-50, sz(2)/2+50, 100));
-ref = ojw_interp2(A, x, y);
+ref = ojw_interp2(A, x, y); % Did you call "mex ojw_interp2.cpp" first?
 
 % Create a small homography
 Hgt = eye(3) + randn(3) * 0.0002;
