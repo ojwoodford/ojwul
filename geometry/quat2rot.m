@@ -15,10 +15,10 @@
 %   R - 3x3xN array of corresponding rotation matrices.
 
 function R = quat2rot(Q, w_last)
-if nargin > 1 && w_last
-    Q = Q([4 1:3],:);
-end
 R = quat_norm(Q);
+if nargin > 1 && w_last
+    R = R([4 1:3],:);
+end
 R = bsxfun(@times, reshape(R, 4, 1, []), reshape(R, 1, 4, []));
 R = [R(1,1,:)+R(2,2,:)-R(3,3,:)-R(4,4,:), 2*(R(2,3,:)-R(4,1,:)), 2*(R(2,4,:)+R(3,1,:));
      2*(R(2,3,:)+R(4,1,:)), R(1,1,:)-R(2,2,:)+R(3,3,:)-R(4,4,:), 2*(R(3,4,:)-R(2,1,:));
