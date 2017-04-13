@@ -38,7 +38,7 @@ for a = 1:100
     
     % Apply the homography
     Y = (H * dH) * X;
-    Y = proj(Y);
+    Y = bsxfun(@times, Y(1:2,:), Y(3,:));
     
     % Sample the image
     tgt = ojw_interp2(A, Y(1,:), Y(2,:));
