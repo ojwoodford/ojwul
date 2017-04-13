@@ -1,7 +1,6 @@
 // B = ojw_interp2(A, X, Y[, method[, oobv]])
 
-// $Id: ojw_interp2.cpp,v 1.4 2008/03/30 19:25:28 ojw Exp $
-// Rewritten by ojw 20/9/06
+// Written by ojw 20/9/06
 
 #include <mex.h>
 #include <math.h>
