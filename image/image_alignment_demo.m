@@ -1,7 +1,19 @@
-function image_alignment_demo()
+%IMAGE_ALIGNMENT_DEMO Demonstrates image alignment
+%
+%   image_alignment_demo()
+%
+% This function demonstrates image alignment via a homography, using
+% various techniques:
+%   - Lie algebra: a Lie representation of homography updates
+%   - Auto differentiation: automatically compute the Jacobian of residuals
+%   - Gauss-Newton: gradient descent with automatic step size computation
+%   - Analytic image gradients: fast image and gradient sampling using
+%       ojw_interp2.
 
-% Load an image
-A = imread('peppers.png');
+function image_alignment_demo(A)
+if nargin < 1
+    A = imread('peppers.png');
+end
 sz = size(A);
 
 % Create a target image
@@ -43,13 +55,7 @@ for a = 1:100
     step = J' \ r(:);
     
     % Visualization
-    subplot(131)
-    sc(ref);
-    subplot(132);
-    sc(r, 'diff');
-    subplot(133);
-    sc(double(tgt));
-    drawnow;
+    render(ref, r, tgt);
     
     % Check for convergence
     if norm(step) < 1e-12
@@ -59,4 +65,31 @@ for a = 1:100
     % Apply the step
     H = H * exp(sl3, -step);
 end
+end
+
+function render(ref, r, tgt)
+persistent handles
+r = log(1 + sum(r .* r, 3));
+tgt = double(tgt) / 255;
+try
+    figure(handles.fig);
+    set(handles.diff_im, 'CData', r);
+    set(handles.tgt_im, 'CData', tgt);
+catch
+    handles.fig = figure(5680);
+    clf;
+    axes('OuterPosition', [0 0 1/3 1]);
+    image(ref/255);
+    title 'Reference image'
+    axis equal off
+    axes('OuterPosition', [1/3 0 1/3 1]);
+    handles.diff_im = imagesc(r);
+    title 'Pixel difference magnitude'
+    axis equal off
+    axes('OuterPosition', [2/3 0 1/3 1]);
+    handles.tgt_im = image(tgt);
+    title 'Target image'
+    axis equal off
+end
+drawnow;
 end
