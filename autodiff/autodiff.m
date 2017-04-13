@@ -254,7 +254,7 @@ classdef autodiff
                     dim = first_nonsingleton_dim(a);
                 end
                 [c, d] = min(a.value, [], dim);
-                c = autodiff(c, v, dimsel(a.deriv, d, dim));
+                c = autodiff(c, var_indices(a), dimsel(a.deriv, d, dim));
             end
         end
         
@@ -267,7 +267,7 @@ classdef autodiff
                     dim = first_nonsingleton_dim(a);
                 end
                 [c, d] = max(a.value, [], dim);
-                c = autodiff(c, v, dimsel(a.deriv, d, dim));
+                c = autodiff(c, var_indices(a), dimsel(a.deriv, d, dim));
             end
         end
         
