@@ -7,14 +7,14 @@
 %   sigma - Scalar value determing the scale of the gradient filter.
 %           Default: 1.
 %   method - String determing the method to use: 'harris', 'noble'
-%           or 'shi-tomasi'. Default: 'noble'.
+%           or 'shi-tomasi'. Default: 'shi-tomasi'.
 %
 %OUT:
 %   score - HxW corner detector score.
 
 function score = corners(I, varargin)
 % Set the default values
-method = 'noble';
+method = 'shi-tomasi';
 sigma = 1;
 for v = varargin(:)'
     if ischar(v{1})
