@@ -44,5 +44,10 @@ else
         error(message('MATLAB:getdimarg:dimensionMustBePositiveInteger'));
     end
 end
-c = sum(conj(a) .* b, dim);
+if any(sza ~= szb)
+    c = bsxfun(@times, conj(a), b);
+else
+    c = conj(a) .* b;
+end
+c = sum(c, dim);
 end
