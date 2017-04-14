@@ -10,7 +10,7 @@
 %   thresh - threshold on point suppression. If negative, magnitude is
 %            interpreted as the proportion of strongest points to keep.
 %            Default: -0.5, i.e. keep top 50% of points.
-%   detector - string of the detector name. Default: 'harris'.
+%   detector - string of the detector name. Default: 'noble'.
 
 function interest_point_demo(A, detector, scale, thresh)
 % Set default arguments
@@ -19,7 +19,7 @@ if nargin < 4
     if nargin < 3
         scale = 2;
         if nargin < 2
-            detector = 'harris';
+            detector = 'noble';
             if nargin < 1
                 A = imread('peppers.png');
             end
@@ -28,10 +28,10 @@ if nargin < 4
 end
 
 switch lower(detector)
-    case 'harris'
+    case {'harris', 'noble', 'shi-tomasi'}
         % Compute the detector score image
         tic;
-        score = harris(A, scale);
+        score = corners(A, scale, detector);
         t1 = toc;
         
         % Compute the interest points
@@ -40,7 +40,7 @@ switch lower(detector)
         t2 = toc;
         
         % Visualization
-        fprintf('Computing Harris detector score: %gs\nExtracting interest points: %gs\n', t1, t2);
+        fprintf('Computing corner detector score: %gs\nExtracting interest points: %gs\n', t1, t2);
         clf;
         % Render the score over the image
         sc(cat(3, score, A), 'prob');
