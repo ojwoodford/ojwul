@@ -31,8 +31,8 @@ end;
 % Check dimensions
 sza = size(a);
 szb = size(b);
-sza(end+1:numel(sz(b))) = 1;
-szb(end+1:numel(sz(a))) = 1;
+sza(end+1:numel(sza)) = 1;
+szb(end+1:numel(szb)) = 1;
 if any(sza ~= szb & sza ~= 1 & szb ~= 1)
    error(message('MATLAB:dot:InputSizeMismatch'));
 end
