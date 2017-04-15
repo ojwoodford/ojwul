@@ -1,6 +1,6 @@
 %FAST_CORNERS  Call mexed FAST corner detector
 %
-%	XY = fast_corners(I, thresh, type)
+%	[XY, scores] = fast_corners(I, thresh, type)
 %
 % FAST corner detection using Ed Rosten's C implementation. Method
 % published in:
@@ -14,6 +14,7 @@
 %
 %OUT:
 %	XY - 2xN uint16 array of x,y coordinates of corners.
+%	score - 1xN uint16 array corner scores.
 
 function varargout = fast_corners(varargin)
 sd = 'private/fast/';

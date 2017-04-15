@@ -8,9 +8,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int numcorners, xsize, ysize, a, threshold, type = 9;
     const uint8_t* data;
     uint16_t* out;
+	int* scores;
     
     /* Parse the arguments */
-    if (nlhs != 1 || nrhs < 2 || nrhs > 3)
+    if (nlhs < 1 || nlhs > 2 || nrhs < 2 || nrhs > 3)
         mexErrMsgTxt("Unexpected arguments");
     if (mxGetClassID(prhs[0]) != mxUINT8_CLASS || mxIsComplex(prhs[0]) || mxGetNumberOfDimensions(prhs[0]) != 2)
         mexErrMsgTxt("data must be a real uint8 matrix");
@@ -30,15 +31,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     switch (type) {
         case 9:
             corners = fast9_detect_nonmax(data, xsize, ysize, xsize, threshold, &numcorners);
+            if (nlhs > 1)
+                scores = fast9_score(data, xsize, corners, numcorners, threshold);
             break;
         case 10:
             corners = fast10_detect_nonmax(data, xsize, ysize, xsize, threshold, &numcorners);
+            if (nlhs > 1)
+                scores = fast10_score(data, xsize, corners, numcorners, threshold);
             break;
         case 11:
             corners = fast11_detect_nonmax(data, xsize, ysize, xsize, threshold, &numcorners);
+            if (nlhs > 1)
+                scores = fast11_score(data, xsize, corners, numcorners, threshold);
             break;
         case 12:
             corners = fast12_detect_nonmax(data, xsize, ysize, xsize, threshold, &numcorners);
+            if (nlhs > 1)
+                scores = fast12_score(data, xsize, corners, numcorners, threshold);
             break;
         default:
             mexErrMsgTxt("type not a valid value");
@@ -53,4 +62,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         out[a*2+1] = (uint16_t)corners[a].x+1;
     }
     free(corners);
+    if (nlhs == 1)
+        return;
+    plhs[1] = mxCreateNumericMatrix(1, numcorners, mxUINT16_CLASS, mxREAL);
+    out = (uint16_t *)mxGetData(plhs[1]);
+    for (a = 0; a < numcorners; ++a)
+        out[a] = (uint16_t)scores[a];
+    free(scores);
 }

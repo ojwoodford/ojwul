@@ -30,14 +30,14 @@ end
 switch lower(detector)
     case {'harris', 'noble', 'shi-tomasi'}
         % Compute the detector score image
-        tic;
+        tic();
         score = corners(A, scale, detector);
-        t1 = toc;
+        t1 = toc();
         
         % Compute the interest points
-        tic;
+        tic();
         X = extract_features(score, 1.5, thresh, true);
-        t2 = toc;
+        t2 = toc();
         
         % Visualization
         fprintf('Computing corner detector score: %gs\nExtracting interest points: %gs\n', t1, t2);
@@ -49,11 +49,52 @@ switch lower(detector)
         plot(X(1,:), X(2,:), 'y.', 'MarkerSize', 10);
         hold off
         
+    case 'fast'
+        % Compute the detector score image
+        if size(A, 3) == 3
+            A = rgb2gray(A);
+        end
+        scale = max(min(round(scale), 12), 9);
+        tic();
+        [X, score] = fast_corners(A, max(thresh, 1), scale);
+        t1 = toc();
+        fprintf('Extracting interest points: %gs\n', t1);
+        
+        % Keep only those above the threshold
+        if thresh < 0
+            tic();
+            s = sort(score, 'descend');
+            thresh = s(ceil(end*-thresh));
+            M = score >= thresh;
+        	score = score(M);
+        	X = X(:,M);
+            t1 = toc();
+            fprintf('Selecting interest points: %gs\n', t1);
+        end
+        
+        % Visualization
+        clf;
+        % Render the image
+        sc(A);
+        % Render the interest points
+        m = max(score);
+        C = parula(m);
+        hold on
+        I = accumarray(score', (1:numel(score))', [m 1], @(I) {I});
+        hold on
+        for a = 1:m
+            if isempty(I{a})
+                continue;
+            end
+            plot(col(X(1,I{a})), col(X(2,I{a})), 'b.', 'Color', C(a,:), 'MarkerSize', 10);
+        end
+        hold off
+        
     case 'dog'
         % Compute the detector score image
-        tic;
+        tic();
         features = dog(A);
-        t1 = toc;
+        t1 = toc();
         
         % Visualization
         fprintf('Detecting DoG features: %gs\n', t1);
