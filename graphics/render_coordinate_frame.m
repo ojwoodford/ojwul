@@ -1,4 +1,4 @@
-function h = render_coordinate_frame(P, cam2world)
+function h = render_coordinate_frame(P, cam2world, scale)
 %RENDER_COORDINATE_FRAME Renders RGB coordinate frames given by P
 
 if nargin < 2 || ~cam2world
@@ -8,6 +8,10 @@ if nargin < 2 || ~cam2world
         P(:,:,a) = inv(P(:,:,a));
     end
     P = P(1:3,:,:);
+end
+
+if nargin > 2
+    P(1:3,1:3,:) = P(1:3,1:3,:) * scale;
 end
 
 % Plot the axes coordinates
