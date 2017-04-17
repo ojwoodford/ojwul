@@ -16,7 +16,7 @@ function h = ojw_texture_map(Z, I)
 
 % $Id: ojw_texture_map.m,v 1.3 2008/11/20 13:36:08 ojw Exp $
 
-[m n c] = size(Z);
+[m, n, c] = size(Z);
 if c == 3
     X = Z(:,:,1);
     Y = Z(:,:,2);
@@ -33,7 +33,7 @@ if nargin > 1
         light;
         lighting phong;
     else
-        [h w c] = size(I);
+        [h, w, c] = size(I);
         mx = max(reshape(I, h*w*c, 1));
         I = double(I);
         if mx > 1
