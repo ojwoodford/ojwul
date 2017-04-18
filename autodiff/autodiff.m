@@ -279,7 +279,8 @@ classdef autodiff
         function c = subsref(a, s)
             assert(strcmp(s.type, '()'));
             s_ = [{':'} s.subs];
-            c = autodiff(a.value(s.subs{:}), a.varind, a.deriv(s_{:}));
+            c = a.value(s.subs{:}); 
+            c = autodiff(c, a.varind, reshape(a.deriv(s_{:}), [size(a.deriv, 1) size(c)]));
         end
         
         function c = subsasgn(a, s, b)
@@ -393,6 +394,16 @@ classdef autodiff
             assert(isautodiff(x) && isautodiff(y) && ~isautodiff(I), 'Unexpected variables');
             [c, d] = ojw_interp2(I, x.value, y.value, 'l', oobv);
             c = autodiff(c, x.varind, bsxfun(@times, x.deriv, d(1,:,:,:)) + bsxfun(@times, y.deriv, d(2,:,:,:)));
+        end
+        
+        % Debug
+        function check_size(a)
+            sz1 = size(a.value);
+            sz2 = size(a.deriv);
+            if numel(sz2) == 2
+                sz2(3) = 1;
+            end
+            assert(isequal(sz1, sz2(2:end)), 'Unexpected array sizes. Value: [%s]. Derivative: [%s].\n', sprintf('%d ', sz1), sprintf('%d ', sz2));
         end
     end
 end
