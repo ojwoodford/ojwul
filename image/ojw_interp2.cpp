@@ -50,8 +50,6 @@ template<class T, class U, class V> static inline void wrapper_func3(U *B, U *G,
         }
         case 'n':
         {
-            if (G != NULL)
-                mexErrMsgTxt("Gradient computation not supported for nearest interpolation method");
             IM_NEAR<T,U,V> im(A, oobv, h, w, col);
 			wrapper_func4(B, G, im, X, Y, num_points);
             break;

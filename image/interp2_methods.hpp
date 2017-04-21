@@ -71,7 +71,26 @@ public:
 		}
     }
     
-    inline void lookup_grad(U *B, U *G, const V X, const V Y, const int out_pitch=1, const int grad_pitch=2) {}
+    // Lookup value and gradient function
+    inline void lookup_grad(U *B, U *G, const V X, const V Y, const int out_pitch=1, const int grad_pitch=2) {
+        if (X >= 0.5 && X < IM_BASE<T, U, V>::dw-1.0 && Y >= 0.5 && Y < IM_BASE<T, U, V>::dh-1.0) {
+			// Find nearest neighbour
+			int k = int(X+0.5) + int(Y+0.5) * IM_BASE<T, U, V>::width_pitch;
+			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch, k += IM_BASE<T, U, V>::plane_pitch)
+            {
+				*B = saturate_cast<U, T>(IM_BASE<T, U, V>::im[k]);
+                G[0] = saturate_cast<U, V>(0.5 * ((V)IM_BASE<T, U, V>::im[k+IM_BASE<T, U, V>::width_pitch] - (V)IM_BASE<T, U, V>::im[k-IM_BASE<T, U, V>::width_pitch]));
+                G[1] = saturate_cast<U, V>(0.5 * ((V)IM_BASE<T, U, V>::im[k+1] - (V)IM_BASE<T, U, V>::im[k-1]));
+            }
+		} else {
+			// Out of bounds
+			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch) {
+                *B = IM_BASE<T, U, V>::oobv;
+                G[0] = U(0);
+                G[1] = U(0);
+            }
+		}
+    }
 };
 
 template<class T, class U, class V> class IM_LIN : public IM_BASE<T, U, V>

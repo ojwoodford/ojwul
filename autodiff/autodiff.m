@@ -388,11 +388,14 @@ classdef autodiff
         % Other functions        
         function c = ojw_interp2(I, x, y, interp_mode, oobv)
             if nargin < 5
+                interp_mode = 'l';
+            end
+            if nargin < 5
                 oobv = NaN;
             end
-            assert(nargin < 4 || interp_mode(1) == 'l', 'Only linear interpolation supported');
+            assert(lower(interp_mode(1)) ~= 'c', 'Cubic interpolation not supported');
             assert(isautodiff(x) && isautodiff(y) && ~isautodiff(I), 'Unexpected variables');
-            [c, d] = ojw_interp2(I, x.value, y.value, 'l', oobv);
+            [c, d] = ojw_interp2(I, x.value, y.value, interp_mode, oobv);
             c = autodiff(c, x.varind, bsxfun(@times, x.deriv, d(1,:,:,:)) + bsxfun(@times, y.deriv, d(2,:,:,:)));
         end
         
