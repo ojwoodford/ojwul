@@ -49,8 +49,9 @@ classdef autodiff
         
         % Elementwise operators
         function c = plus(a, b)
-            [c, v] = combine_grads(grad(a), grad(b), var_indices(a), var_indices(b), 'add');
-            c = autodiff(bsxfun(@plus, double(a), double(b)), v, c);
+            c = bsxfun(@plus, double(a), double(b));
+            [d, v] = combine_grads(grad(a), grad(b), var_indices(a), var_indices(b), size(c), 'add');
+            c = autodiff(c, v, d);
         end
         
         function c = uminus(a)
@@ -72,8 +73,9 @@ classdef autodiff
             if isautodiff(b)
                 gb = bsxfun(@times, b.deriv, shiftdim(da, -1));
             end
-            [c, v] = combine_grads(ga, gb, var_indices(a), var_indices(b), 'add');
-            c = autodiff(bsxfun(@times, da, db), v, c);
+            c = bsxfun(@times, da, db);
+            [d, v] = combine_grads(ga, gb, var_indices(a), var_indices(b), size(c), 'add');
+            c = autodiff(c, v, d);
         end
         
         function c = rdivide(a, b)
@@ -87,8 +89,9 @@ classdef autodiff
             if isautodiff(b)
                 gb = bsxfun(@times, b.deriv, -shiftdim(da, -1));
             end
-            [c, v] = combine_grads(ga, gb, var_indices(a), var_indices(b), 'add');
-            c = autodiff(bsxfun(@rdivide, da, db), v, bsxfun(@times, c, shiftdim(1 ./ (db .* db), -1)));
+            c = bsxfun(@rdivide, da, db);
+            [d, v] = combine_grads(ga, gb, var_indices(a), var_indices(b), size(c), 'add');
+            c = autodiff(c, v, bsxfun(@times, d, shiftdim(1 ./ (db .* db), -1)));
         end
         
         function c = ldivide(a, b)
@@ -427,7 +430,7 @@ g = repmat(fill, sz);
 g(l,:) = ga(:,:);
 end
 
-function [c, v] = combine_grads(ga, gb, va, vb, M)
+function [c, v] = combine_grads(ga, gb, va, vb, sz, M)
 if ischar(M)
     switch M
         case 'add'
@@ -442,12 +445,18 @@ else
     fill = 0;
 end
 if isempty(va)
-    c = gb;
+    sz2 = size(gb);
+    sz = [sz2(1) sz];
+    sz2(end+1:numel(sz)) = 1;
+    c = repmat(gb, sz ./ sz2);
     v = vb;
     return;
 end
 if isempty(vb)
-    c = ga;
+    sz2 = size(ga);
+    sz = [sz2(1) sz];
+    sz2(end+1:numel(sz)) = 1;
+    c = repmat(ga, sz ./ sz2);
     v = va;
     return;
 end
