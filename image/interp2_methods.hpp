@@ -16,6 +16,22 @@ public:
 	inline int Width() const { return width; }
 	inline int Height() const { return height; }
 	inline int Channels() const { return nchannels; }
+    
+    // Other helpers
+	inline void SetOOBV(U new_oobv) { oobv = new_oobv; }
+    
+protected:    
+    const T *im;
+    V *im_copy;
+    int height;
+    int width;
+    int nchannels;
+    int width_pitch;
+    int plane_pitch;
+    U oobv;
+    V dw;
+    V dh;
+    
     inline int ind_symmetric(int x, int y) const // Lookup with symmetric padding
     {
         if (x < 0 || x >= width) {
@@ -32,18 +48,6 @@ public:
         }
         return x + y * width_pitch;
     }
-    
-protected:    
-    const T *im;
-    V *im_copy;
-    int height;
-    int width;
-    int nchannels;
-    int width_pitch;
-    int plane_pitch;
-    U oobv;
-    V dw;
-    V dh;
 };
 
 // Function for correct rounding

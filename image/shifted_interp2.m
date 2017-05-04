@@ -18,8 +18,13 @@ classdef shifted_interp2 < handle
         end
 
         %% Interpolate - Sample the shifted image
-        function out = interp2(this, X, Y)
-            out = shifted_interp2_mex(this.objectHandle, X, Y);
+        function out = interp2(this, X, Y, varargin)
+            if nargin > 4
+                % Pass oobv to interpolator
+                out = shifted_interp2_mex(this.objectHandle, X, Y, varargin{2});
+            else
+                out = shifted_interp2_mex(this.objectHandle, X, Y);
+            end
         end
     end
 end

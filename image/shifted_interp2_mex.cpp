@@ -15,7 +15,7 @@ extern "C" mxArray *mxCreateUninitNumericArray(mwSize ndim, const size_t *dims, 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 	// Check number of arguments
-	if (nrhs < 1 || nrhs > 3)
+	if (nrhs < 1 || nrhs > 4)
 		mexErrMsgTxt("Unexpected number of input arguments.");
     
     // Destructor
@@ -63,6 +63,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int num_points = mxGetNumberOfElements(prhs[1]);
 	if (!mxIsDouble(prhs[1]) || !mxIsDouble(prhs[2]) || num_points != mxGetNumberOfElements(prhs[2]) || mxIsComplex(prhs[1]) || mxIsComplex(prhs[2]))
 		mexErrMsgTxt("X and Y must be real double arrays of the same size");
+
+    // Get the value for oobv
+    if (nrhs > 3) {
+        if (mxGetNumberOfElements(prhs[3]) != 1 || !mxIsDouble(prhs[3]))
+            mexErrMsgTxt("oobv must be a scalar double.");
+        instance->SetOOBV(mxGetScalar(prhs[3]));
+    }
     
     // Get pointers to the coordinate arrays
     const double *X = (const double *)mxGetData(prhs[1]);
