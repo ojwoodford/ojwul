@@ -1,20 +1,37 @@
 #ifndef __INTERP2_METHODS_H__
 #define __INTERP2_METHODS_H__
+#include <limits> // For std::numeric_limits
+#include <utility> // For std::pair
+#define _USE_MATH_DEFINES
+#include <cmath> // For std::abs, M_PI
 
 // These methods all use the following conventions:
 //    1. The centre of the top left pixel is at 0,0
 //    2. The image is stored in memory row-major.
 
-// Function for correct rounding
-// Add these to use numeric_limits class
-#include <limits>
 template<class T, class U, class V> class IM_BASE
 {
 public:    
 	// Image dimensions
-	inline int Width() { return width; }
-	inline int Height() { return height; }
-	inline int Channels() { return nchannels; }
+	inline int Width() const { return width; }
+	inline int Height() const { return height; }
+	inline int Channels() const { return nchannels; }
+    inline int ind_symmetric(int x, int y) const // Lookup with symmetric padding
+    {
+        if (x < 0 || x >= width) {
+            x = x % (2 * width);
+            x = (x + 2 * width) % (2 * width);
+            if (x >= width)
+                x = 2 * width - 1 - x;
+        }
+        if (y < 0 || y >= height) {
+            y = y % (2 * height);
+            y = (y + 2 * height) % (2 * height);
+            if (y >= height)
+                y = 2 * height - 1 - y;
+        }
+        return x + y * width_pitch;
+    }
     
 protected:    
     const T *im;
@@ -29,6 +46,7 @@ protected:
     V dh;
 };
 
+// Function for correct rounding
 template <typename U, typename T>
 static inline U saturate_cast(T val)
 {
@@ -341,6 +359,132 @@ public:
             }
 		}
     }
+};
+
+// N TAP FILTERS
+template <int N>
+struct lanczos { // N tap - described here: https://en.wikipedia.org/wiki/Lanczos_resampling
+    template <typename V> V               operator()(V x) { if (x == V(0)) return V(1.0); x *= M_PI; return sin(x) * sin(x / (N-1)) * (N-1) / (x*x); }
+    template <typename V> std::pair<V, V> operator[](V x) { // Derivative
+        if (x == V(0))
+            return std::make_pair<V, V>(V(1.0), V(0.0));
+        V px = x * M_PI;
+        V spx = sin(px);
+        V cpx = cos(px);
+        V pxa = x / (N - 1);
+        V spxa = sin(pxa);
+        V cpxa = cos(pxa);
+        return std::make_pair<V, V>(spx * spxa * (N-1) / (px * px), (spx * cpxa + (N - 1) * cpx * spxa - 2 * (N - 1) * spx * spxa / px) / (px * x)); 
+    }
+};
+struct magic { // Magic kernel (3 tap) - described here: http://johncostella.webs.com/magic/
+    template <typename V> V               operator()(V x) { return (std::abs(x) <= V(0.5)) ?                     (V(0.75) - (x * x))              :                     (V(0.5) * (x * x - V(3) * std::abs(x) + V(2.25))); }
+    template <typename V> std::pair<V, V> operator[](V x) { return (std::abs(x) <= V(0.5)) ? std::make_pair<V, V>(V(0.75) - (x * x), V(-2.0) * x) : std::make_pair<V, V>(V(0.5) * (x * x - V(3) * std::abs(x) + V(2.25)), x + (x < V(0) ? V(1.5) : -V(1.5))); } // Derivative
+};
+
+template<class T, class U, class V, int N, typename filter> class IM_NTAP : public IM_BASE<T, U, V>
+{
+public:
+    // Constructor
+    IM_NTAP(const T *im_, U o, int w, int h, int c=1, int wp=0, int pp=0) {
+        IM_BASE<T, U, V>::im = im_;
+        IM_BASE<T, U, V>::oobv = o;
+        IM_BASE<T, U, V>::width = w;
+        IM_BASE<T, U, V>::dw = (V)(w) - 1.0;
+        IM_BASE<T, U, V>::height = h;
+        IM_BASE<T, U, V>::dh = (V)(h) - 1.0;
+        IM_BASE<T, U, V>::nchannels = c;
+        IM_BASE<T, U, V>::width_pitch = wp == 0 ? IM_BASE<T, U, V>::width : wp;
+        IM_BASE<T, U, V>::plane_pitch = pp == 0 ? IM_BASE<T, U, V>::width_pitch * IM_BASE<T, U, V>::height : pp;
+    }
+    
+    // Lookup function
+    inline void lookup(U *B, const V X, const V Y, const int out_pitch=1) {
+        if (X >= 0.0 && X <= IM_BASE<T, U, V>::dw && Y >= 0.0 && Y <= IM_BASE<T, U, V>::dh) {
+            // N tap interpolation
+            // Compute the filter values and lookup indices
+            V xf[N], yf[N], x_val, y_val;
+            const T* im_;
+            int ind[N][N];
+			int x = (int)X;
+			int y = (int)Y;
+            int c, d;
+            filter f;
+            for (c = 0; c < N; ++c) {
+                xf[c] = f(X - V(x + c - (N - 1) / 2));
+                yf[c] = f(Y - V(y + c - (N - 1) / 2));
+                for (d = 0; d < N; ++d)
+                    ind[c][d] = IM_BASE<T, U, V>::ind_symmetric(x + d - (N - 1) / 2, y + c - (N - 1) / 2);
+            }
+            // Sample the image
+            im_ = IM_BASE<T, U, V>::im;
+			for (c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, im_ += IM_BASE<T, U, V>::plane_pitch) {
+				y_val = V(0);
+                for (int y = 0; y < N; ++y) {
+                    x_val = V(0);
+                    for (int x = 0; x < N; ++x)
+                        x_val += (V)im_[ind[y][x]] * xf[x];
+					y_val += yf[y] * x_val;
+                }
+				*B = saturate_cast<U, V>(y_val);
+			}
+		} else {
+			// Out of bounds
+			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch)
+				*B = IM_BASE<T, U, V>::oobv;
+		}
+    }
+    
+    // Lookup value and gradient function
+    inline void lookup_grad(U *B, U *G, const V X, const V Y, const int out_pitch=1, const int grad_pitch=2) {
+        if (X >= 0.0 && Y >= 0.0 && X <= IM_BASE<T, U, V>::dw && Y <= IM_BASE<T, U, V>::dh) {
+            // N tap interpolation
+            // Compute the filter values and lookup indices
+            std::pair<V, V> xf[N], yf[N];
+            V x_val, y_val, im_val, x_deriv_, x_deriv, y_deriv;
+            const T* im_;
+            int ind[N][N];
+			int x = (int)X;
+			int y = (int)Y;
+            int c, d;
+            filter f;
+            for (c = 0; c < N; ++c) {
+                xf[c] = f[X - V(x + c - (N - 1) / 2)];
+                yf[c] = f[Y - V(y + c - (N - 1) / 2)];
+                for (d = 0; d < N; ++d)
+                    ind[c][d] = IM_BASE<T, U, V>::ind_symmetric(x + d - (N - 1) / 2, y + c - (N - 1) / 2);
+            }
+            // Sample the image
+            im_ = IM_BASE<T, U, V>::im;
+			for (c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch, im_ += IM_BASE<T, U, V>::plane_pitch) {
+				y_val = V(0);
+                x_deriv = V(0);
+                y_deriv = V(0);
+                for (int y = 0; y < N; ++y) {
+                    x_val = V(0);
+                    x_deriv_ = V(0);
+                    for (int x = 0; x < N; ++x) {
+                        im_val = (V)im_[ind[y][x]];
+                        x_val += im_val * xf[x].first;
+                        x_deriv_ += im_val * xf[x].second;
+                    }
+					y_val += x_val * yf[y].first;
+					x_deriv += x_deriv_ * yf[y].first;
+					y_deriv += x_val * yf[y].second;
+                }
+				*B = saturate_cast<U, V>(y_val);
+                G[0] = saturate_cast<U, V>(x_deriv);
+                G[1] = saturate_cast<U, V>(y_deriv);
+			}
+		} else {
+			// Out of bounds
+			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch) {
+                *B = IM_BASE<T, U, V>::oobv;
+                G[0] = U(0);
+                G[1] = U(0);
+            }
+		}
+    }  
 };
 
 template<class T, class U, class V> class IM_CUB : public IM_BASE<T, U, V>
