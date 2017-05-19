@@ -51,6 +51,13 @@ end
 function str = datatip_txtfun(obj, event)
 % Get the position of the object that was clicked
 X = event.Position';
+% Check if the string is cached
+persistent last_pos
+persistent last_str
+if isequal(last_pos, X)
+    str = last_str;
+    return;
+end
 % Check if this has an add_datatip structure
 if strcmp(event.Target.Tag, 'add_datatip')
     % Find the point that was clicked
@@ -83,9 +90,13 @@ else
             break;
         end
     end
-    % Set the data cursor position
-    obj.Cursor.Position = Z';
 end
+% Check if the string is cached
+if isequal(last_pos, Z)
+    str = last_str;
+    return;
+end
+% Generate the structure to display
 str = struct('X', Z(1), 'Y', Z(2));
 if numel(X) == 3
     str.Z = Z(3);
@@ -117,5 +128,11 @@ if ~isempty(data)
         fprintf('Error in datatip callback: %s\n', getReport(me, 'basic'));
     end
 end
+% Stringify the structure
 str = regexprep(evalc('disp(str)'), '\n *', '\n');
+% Store to avoid repetition of computation when we move the cursor
+last_pos = Z;
+last_str = str;
+% Set the data cursor position
+obj.Cursor.Position = Z';
 end
