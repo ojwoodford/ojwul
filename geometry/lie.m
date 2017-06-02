@@ -70,6 +70,11 @@ classdef lie
             this.Gv = bsxfun(@times, this.G, 1 ./ sum(abs(this.G), 1))';
         end
         
+        % NDIMS - Return the dimensionality of the space
+        function n = ndims(this)
+            n = size(this.G, 2);
+        end
+        
         % VEE - Convert from Lie matrix to Lie tangent space
         function tangent = vee(this, matrix)
             tangent = this.Gv * reshape(matrix, size(this.Gv, 2), []);
