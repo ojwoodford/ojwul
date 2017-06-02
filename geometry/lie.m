@@ -10,7 +10,7 @@ classdef lie
                 switch generators
                     case 'so2'
                         % Generators for se2
-                        generators = [0 -1; 0 1];
+                        generators = [0 -1; 1 0];
                     case 'se2'
                         % Generators for se2
                         generators = zeros(3, 3, 3);
