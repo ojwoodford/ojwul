@@ -208,6 +208,13 @@ classdef autodiff
             c = autodiff(c, a.varind, d);
         end
         
+        function c = logm(a)
+            sz = [size(a.deriv) 1];
+            d = bsxfun(@times, shiftdim(inv(a.value), -1), reshape(a.deriv, sz([1 end 2:end-1])));
+            d = reshape(sum(d, 3), sz);
+            c = autodiff(logm(a.value), a.varind, d);
+        end
+        
         % Reduction methods: Sum, prod, min, max
         function c = sum(a, dim, flag)
             assert(nargin < 3 || strcmp(flag, 'default'), 'Only default option supported');
