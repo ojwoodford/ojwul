@@ -111,12 +111,20 @@ classdef lie
             
         end
         
+        function tangent = Adjoint_times(this, transform, tangent)
+            tangent = tmult(transform, this.hat(tangent));
+            for a = 1:size(transform, 3)
+                transform(:,:,a) = inv(transform(:,:,a));
+            end
+            tangent = this.vee(tmult(tangent, transform));
+        end
+        
         % LIEBRACKET - Apply the Lie bracket to two Lie tangent vectors
         function tangent = liebracket(this, tangentA, tangentB)
             %tangent = this.adjoint(tangentA) * tangentB;
             A = this.hat(tangentA);
             B = this.hat(tangentB);
-            tangent = this.vee(A * B - B * A);
+            tangent = this.vee(tmult(A, B) - tmult(B, A));
         end
         
         % INTERP1 - Linear interpolation between transforms
