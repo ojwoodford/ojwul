@@ -85,5 +85,6 @@ A = sum(bsxfun(@times, A, B), dim);
 szA = [szA ones(1, numel(szB)-numel(szA))];
 szB = [szB ones(1, numel(szA)-numel(szB))];
 szB(3:end) = max(szB(3:end), szA(3:end));
+szB([false(1, 2) szA(3:end)==0]) = 0;
 A = reshape(A, szB);
 end
