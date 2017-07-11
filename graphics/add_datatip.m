@@ -113,7 +113,7 @@ if ~isempty(data)
                     str.(data{a}) = data{a+1}(:,id)';
                 end
             end
-        else
+        elseif N == 1
             if iscell(data{1})
                 str.Data = data{1}{id};
             else
@@ -122,10 +122,12 @@ if ~isempty(data)
         end
         if N ~= numel(data)
             % Call the callback
-            data{end}(str);
+            data{end}(str, id);
         end
     catch me
         fprintf('Error in datatip callback: %s\n', getReport(me, 'basic'));
+        fprintf('ID: %d\n', id);
+        fprintf('Str:\n%s\n', str);
     end
 end
 % Stringify the structure
