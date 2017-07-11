@@ -71,7 +71,7 @@ if strcmp(event.Target.Tag, 'add_datatip')
     Z = Y(:,id);
 else
     % Query all the datatip objects
-    objs = findobj(ancestor(event.Target, 'Axes'), 'Tag', 'add_datatip');
+    objs = findobj(ancestor(event.Target, 'Figure'), 'Tag', 'add_datatip');
     Z = NaN(size(X, 1), 1);
     md = Inf;
     for a = 1:numel(objs)
