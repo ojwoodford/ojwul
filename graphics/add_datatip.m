@@ -99,6 +99,7 @@ end
 % Check if the string is cached
 if isequal(last_pos, Z)
     str = last_str;
+    obj.Cursor.Position = Z';
     return;
 end
 % Generate the structure to display
