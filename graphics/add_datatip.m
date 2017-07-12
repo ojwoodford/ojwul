@@ -28,7 +28,7 @@ function h = add_datatip(h, varargin)
 assert(isscalar(h), 'Only one handle expected');
 
 % Check for a callback
-if isa(varargin{1}, 'function_handle')
+if nargin > 1 && isa(varargin{1}, 'function_handle')
     callback = varargin(1);
     varargin = varargin(2:end);
 else
@@ -59,6 +59,7 @@ if isequal(last_pos, X)
     return;
 end
 % Check if this has an add_datatip structure
+id = [];
 if strcmp(event.Target.Tag, 'add_datatip')
     % Find the point that was clicked
     hTarg = event.Target;
@@ -71,7 +72,7 @@ if strcmp(event.Target.Tag, 'add_datatip')
     Z = Y(:,id);
 else
     % Query all the datatip objects
-    objs = findobj(ancestor(event.Target, 'Figure'), 'Tag', 'add_datatip');
+    objs = findobj(ancestor(event.Target, 'Axes'), 'Tag', 'add_datatip');
     Z = NaN(size(X, 1), 1);
     md = Inf;
     for a = 1:numel(objs)
@@ -90,6 +91,10 @@ else
             break;
         end
     end
+end
+if isempty(id)
+    str = '';
+    return;
 end
 % Check if the string is cached
 if isequal(last_pos, Z)
