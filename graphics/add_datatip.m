@@ -64,9 +64,9 @@ if strcmp(event.Target.Tag, 'add_datatip')
     % Find the point that was clicked
     hTarg = event.Target;
     if numel(X) == 3
-        Y = [hTarg.XData; hTarg.YData; hTarg.ZData];
+        Y = [hTarg.XData(:)'; hTarg.YData(:)'; hTarg.ZData(:)'];
     else
-        Y = [hTarg.XData; hTarg.YData];
+        Y = [hTarg.XData(:)'; hTarg.YData(:)'];
     end
     [md, id] = sqdist2closest(X, Y);
     Z = Y(:,id);
@@ -77,9 +77,9 @@ else
     md = Inf;
     for a = 1:numel(objs)
         if numel(X) == 3
-            Y = [objs(a).XData; objs(a).YData; objs(a).ZData];
+            Y = [objs(a).XData(:)'; objs(a).YData(:)'; objs(a).ZData(:)'];
         else
-            Y = [objs(a).XData; objs(a).YData];
+            Y = [objs(a).XData(:)'; objs(a).YData(:)'];
         end
         [d, id] = sqdist2closest(X, Y);
         if d < md
