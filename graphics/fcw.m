@@ -81,8 +81,13 @@ drawnow;
 pan(fig, 'off');
 zoom(fig, 'off');
 rotate3d(fig, 'off');
-% Find all the axes
+% Find all the 3D axes
 hAx = findobj(fig, 'Type', 'axes', '-depth', 1);
+for a = numel(hAx):-1:1
+    zl = zlim(hAx(a));
+    M(a) = zl(2) ~= 1 || (zl(1) ~= -1 && zl(1) ~= 0);
+end
+hAx = hAx(M);
 % For each set of axes
 for h = hAx'
     % Set everything to manual
@@ -128,10 +133,14 @@ if block
 end
 end
 
+function tf = isvalid(cax)
+tf = isempty(cax) || ~isequal(size(get(cax, 'UserData')), [4 4]);
+end
+
 function fcw_keypress(src, eventData, modifiers, varargin)
 fig = ancestor(src, 'figure');
 cax = get(fig, 'CurrentAxes');
-if isempty(cax) || modifiers() % Check the required modifiers were pressed, else do nothing
+if isvalid(cax) || modifiers() % Check the required modifiers were pressed, else do nothing
     % Call the other keypress callbacks
     if ~isempty(varargin)
         varargin{1}(src, eventData, varargin{2:end});
@@ -185,7 +194,7 @@ function fcw_mousedown(src, eventData, funcs, modifiers, varargin)
 % Check an axes is selected
 fig = ancestor(src, 'figure');
 cax = get(fig, 'CurrentAxes');
-if isempty(cax) || modifiers() % Check the required modifiers were pressed, else do nothing
+if isvalid(cax) || modifiers() % Check the required modifiers were pressed, else do nothing
     % Call the other mousedown callbacks
     % This allows other interactions to be used easily alongside fcw()
     if ~isempty(varargin)
@@ -278,7 +287,7 @@ function fcw_scroll(src, eventData, func, modifiers, varargin)
 % Get the axes handle
 fig = ancestor(src, 'figure');
 cax = get(fig, 'CurrentAxes');
-if isempty(cax) || modifiers() % Check the required modifiers were pressed, else do nothing
+if isvalid(cax) || modifiers() % Check the required modifiers were pressed, else do nothing
     % Call the other mousedown callbacks
     % This allows other interactions to be used easily alongside fcw()
     if ~isempty(varargin)
