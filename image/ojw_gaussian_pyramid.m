@@ -20,8 +20,7 @@ function B = ojw_gaussian_pyramid(A, max_depths, F)
 
 if nargin < 3
     % Use a separable smoothing filter
-    F = gauss_mask(1/sqrt(2));
-    F = F / sum(F);
+    F = [0.25 0.5 0.25];
 end
 
 % Multi-cell input
