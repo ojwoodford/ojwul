@@ -43,7 +43,7 @@ assert(all(coeff(1:2:end) == 0) || all(coeff(2:2:end) == 0), 'Filter not odd or 
 f = @(theta, x, y) filter_val(r, coeff, theta, x, y);
 
 % Compute regularly spaced angles
-N = numel(coeff) - 1;
+N = find(fliplr(coeff), 1, 'last') - 1;
 theta = linspace(0, pi, N+2);
 theta = theta(1:end-1);
 
@@ -66,8 +66,8 @@ basis = reshape(basis', M, M, N+1);
 [x, x] = max(abs(reshape(basis, M*M, N+1)), [], 1);
 [y, x] = ind2sub([M M], x);
 B = basis;
-basis = zeros(M, 2, N);
-for a = 1:N
+basis = zeros(M, 2, N+1);
+for a = 1:N+1
     v = 1 ./ sqrt(abs(B(y(a),x(a),a)));
     basis(:,1,a) = B(:,x(a),a) * v * sign(B(y(a),x(a),a));
     basis(:,2,a) = B(y(a),:,a) * v;
@@ -75,8 +75,8 @@ end
 
 % Display the filters and basis
 if nargout == 0
-    figure(1); sc(F, 'diff');
-    figure(2); sc(reshape(B, M, M, 1, N+1), 'diff');
+    figure(1); clf reset; sc(F, 'diff');
+    figure(2); clf reset; sc(reshape(B, M, M, 1, N+1), 'diff');
     clear basis weight_fun
 end
 end
