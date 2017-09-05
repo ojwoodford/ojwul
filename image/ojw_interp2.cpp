@@ -220,6 +220,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		case mxSINGLE_CLASS:
 			wrapper_func(B, G, (const float *)A, prhs, num_points, dims[1], dims[0], nchannels, oobv, buffer[k], out_class, in_class);
 			break;
+		case mxINT8_CLASS:
+			wrapper_func(B, G, (const int8_t *)A, prhs, num_points, dims[1], dims[0], nchannels, oobv, buffer[k], out_class, in_class);
+			break;
 		case mxUINT8_CLASS:
 			wrapper_func(B, G, (const uint8_t *)A, prhs, num_points, dims[1], dims[0], nchannels, oobv, buffer[k], out_class, in_class);
 			break;
