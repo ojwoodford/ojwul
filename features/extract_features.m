@@ -11,7 +11,8 @@
 %   thresh - Threshold on corner suppression. If negative, magnitude is
 %            interpreted as the proportion of strongest corners to keep.
 %            Default: -0.5, i.e. keep top 50% of corners.
-%   subpixel - Boolean indicating whether subpixel refinement
+%   subpixel - Boolean indicating whether subpixel refinement is wanted.
+%              Default: true.
 %   
 %OUT:
 %   X - 2xN matrix of interest point locations.
@@ -58,4 +59,5 @@ X = X([2 1],:);
 % Output the scores
 if nargout > 1
     score = score(M);
+end
 end

@@ -14,6 +14,9 @@
 %   B - HxWxC filtered output image.
 
 function I = imfiltsep(I, fy, fx)
+if nargin < 3
+    fx = fy;
+end
 % Compute the padding indices
 [H, W, C] = size(I);
 sympadding = @(N, n) [floor(n/2)+1:-1:2 1:N N-1:-1:N-ceil(n/2-0.5)];
