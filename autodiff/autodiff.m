@@ -281,6 +281,31 @@ classdef autodiff
             end
         end
         
+        % Logical operators
+        function c = lt(a, b)
+            c = lt(double(a), double(b));
+        end
+        
+        function c = le(a, b)
+            c = le(double(a), double(b));
+        end
+        
+        function c = gt(a, b)
+            c = gt(double(a), double(b));
+        end
+        
+        function c = ge(a, b)
+            c = ge(double(a), double(b));
+        end
+        
+        function c = eq(a, b)
+            c = eq(double(a), double(b));
+        end
+        
+        function c = ne(a, b)
+            c = ne(double(a), double(b));
+        end
+        
         % Access functions
         function c = end(a, k, n)
             c = size(a.value, k);
