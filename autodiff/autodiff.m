@@ -420,6 +420,10 @@ classdef autodiff
             c = isscalar(a.value);
         end
         
+        function c = isreal(a)
+            c = isreal(a.value) & isreal(a.deriv);
+        end
+        
         % Other functions        
         function c = ojw_interp2(I, x, y, interp_mode, oobv)
             if nargin < 5

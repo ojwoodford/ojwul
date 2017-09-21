@@ -35,6 +35,12 @@ classdef lie
                         generators = so3();
                     case 'rxso3'
                         generators = rxso3();
+                    case 'uv3' % 3D unit vector
+                        generators = so3();
+                        generators = generators(:,:,2:3);
+                    case 'rxuv3' % 3D vector parameterized by rotation and scale
+                        generators = rxso3();
+                        generators = generators(:,:,2:4);
                     case 'se3'
                         % Generators for se3
                         generators = zeros(4, 4, 6);
