@@ -34,7 +34,7 @@ permission = 'wt';
 if nargin > 2 && append(1)
     permission = 'at';
 end
-fh = fopen(fname, permission);
+fh = fopens(fname, permission);
 if fh == -1
     error('Could not open file %s for writing.', fname);
 end

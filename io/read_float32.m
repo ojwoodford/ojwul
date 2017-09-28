@@ -9,6 +9,4 @@
 %   A - Nx1 single array of the values in the file.
 
 function A = read_float32(fname)
-fh = fopen(fname, 'r');
-A = fread(fh, '*float32');
-fclose(fh);
+A = read_bin(fname, 'float32');
