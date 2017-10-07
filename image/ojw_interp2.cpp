@@ -8,6 +8,7 @@
 #include <omp.h>
 #endif
 #include "interp2_methods.hpp"
+#include <vector>
 
 // Define types
 #include <stdint.h>
@@ -158,9 +159,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	if (num_points != mxGetNumberOfElements(prhs[2]))
 		mexErrMsgTxt("X and Y must have the same dimensions");
 	int ndims = mxGetNumberOfDimensions(prhs[0]);
-	if (ndims > 20)
-		mexErrMsgTxt("A has an unsupported number of dimensions");
-	size_t out_dims[21];
+	std::vector<size_t> out_dims(ndims);
     out_dims[0] = 2;
 	out_dims[1] = mxGetM(prhs[1]);
 	out_dims[2] = mxGetN(prhs[1]);
@@ -192,7 +191,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	void *B = mxGetData(plhs[0]);
     void *G = NULL;
     if (nlhs > 1) {
-        plhs[1] = mxCreateUninitNumericArray(ndims+1, out_dims, out_class, mxREAL);
+        plhs[1] = mxCreateUninitNumericArray(ndims+1, &out_dims[0], out_class, mxREAL);
         G = mxGetData(plhs[1]);
     }
 
