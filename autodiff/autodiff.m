@@ -433,9 +433,19 @@ classdef autodiff
                 oobv = NaN;
             end
             assert(lower(interp_mode(1)) ~= 'c', 'Cubic interpolation not supported');
-            assert(isautodiff(x) && isautodiff(y) && ~isautodiff(I), 'Unexpected variables');
-            [c, d] = ojw_interp2(I, x.value, y.value, interp_mode, oobv);
-            c = autodiff(c, x.varind, bsxfun(@times, x.deriv, d(1,:,:,:)) + bsxfun(@times, y.deriv, d(2,:,:,:)));
+            if isautodiff(x) && isautodiff(y) && ~isautodiff(I)
+                [c, d] = ojw_interp2(I, x.value, y.value, interp_mode, oobv);
+                c = autodiff(c, x.varind, bsxfun(@times, x.deriv, d(1,:,:,:)) + bsxfun(@times, y.deriv, d(2,:,:,:)));
+            elseif isautodiff(I) && ~isautodiff(x) && ~isautodiff(y)
+                [h, w, n] = size(I.value);
+                c = [shiftdim(I.value, -1); I.grad];
+                c = reshape(reshape(c, size(c, 1), numel(I.value))', h, w, []);
+                c = ojw_interp2(c, x, y, interp_mode, oobv);
+                c = reshape(c, size(c, 1), size(c, 2), n, numel(I.varind)+1);
+                c = autodiff(c(:,:,:,1), I.varind, permute(c(:,:,:,2:end), [4 1 2 3]));
+            else
+                error('Unexpected variables');
+            end
         end
         
         % Debug
