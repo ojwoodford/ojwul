@@ -438,11 +438,13 @@ classdef autodiff
                 c = autodiff(c, x.varind, bsxfun(@times, x.deriv, d(1,:,:,:)) + bsxfun(@times, y.deriv, d(2,:,:,:)));
             elseif isautodiff(I) && ~isautodiff(x) && ~isautodiff(y)
                 [h, w, n] = size(I.value);
+                sz = size(I.value);
+                [sz(1), sz(2)] = size(x);
                 c = [shiftdim(I.value, -1); I.grad];
                 c = reshape(reshape(c, size(c, 1), numel(I.value))', h, w, []);
                 c = ojw_interp2(c, x, y, interp_mode, oobv);
                 c = reshape(c, size(c, 1), size(c, 2), n, numel(I.varind)+1);
-                c = autodiff(c(:,:,:,1), I.varind, permute(c(:,:,:,2:end), [4 1 2 3]));
+                c = autodiff(reshape(c(:,:,:,1), sz), I.varind, reshape(permute(c(:,:,:,2:end), [4 1 2 3]), [numel(I.varind) sz]));
             else
                 error('Unexpected variables');
             end
