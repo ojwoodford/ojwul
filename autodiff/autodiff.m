@@ -34,9 +34,14 @@ classdef autodiff
             if nargin < 2
                 vars = obj.varind;
             end
-            c = zeros([numel(vars) size(obj.value)]);
-            [Lia, Locb] = ismember(vars, obj.varind);
-            c(Lia,:) = obj.deriv(Locb(Lia),:);
+            n = numel(vars);
+            if n == numel(obj.varind) && n == vars(end) && n == obj.varind(end)
+                c = obj.deriv;
+            else
+                c = zeros([n size(obj.value)]);
+                [Lia, Locb] = ismember(vars, obj.varind);
+                c(Lia,:) = obj.deriv(Locb(Lia),:);
+            end
         end
         
         function c = var_indices(obj)
@@ -313,9 +318,8 @@ classdef autodiff
          
         function c = subsref(a, s)
             assert(strcmp(s.type, '()'));
-            s_ = [{':'} s.subs];
             c = a.value(s.subs{:}); 
-            c = autodiff(c, a.varind, reshape(a.deriv(s_{:}), [size(a.deriv, 1) size(c)]));
+            c = autodiff(c, a.varind, reshape(a.deriv(:,s.subs{:}), [size(a.deriv, 1) size(c)]));
         end
         
         function c = subsasgn(a, s, b)
@@ -370,11 +374,10 @@ classdef autodiff
         
         function c = reshape(a, varargin)
             if nargin == 2 && isnumeric(varargin{1})
-                v_ = {[size(a.deriv, 1) varargin{1}]};
+                c = autodiff(reshape(a.value, varargin{1}), a.varind, reshape(a.deriv, [size(a.deriv, 1) varargin{1}]));
             else
-                v_ = [{size(a.deriv, 1)}; varargin(:)];
+                c = autodiff(reshape(a.value, varargin{:}), a.varind, reshape(a.deriv, size(a.deriv, 1), varargin{:}));
             end
-            c = autodiff(reshape(a.value, varargin{:}), a.varind, reshape(a.deriv, v_{:}));
         end
         
         function c = shiftdim(a, n)
