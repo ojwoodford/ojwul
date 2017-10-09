@@ -453,6 +453,56 @@ classdef autodiff
             end
         end
         
+        function c = conv2(varargin)
+            % Get the shape
+            if ischar(varargin{end})
+                shape = varargin{end};
+                varargin = varargin(1:end-1);
+            else
+                shape = 'full';
+            end
+            v = combine_varind(varargin{:});
+            n = numel(v);
+            c = double(varargin{end});
+            if isautodiff(varargin{end})
+                d = permute(grad(varargin{end}, v), [2 3 1]);
+            else
+                d = [];
+            end
+            if numel(varargin) == 3
+                varargin{1} = reshape(varargin{1}, [], 1);
+                varargin{2} = reshape(varargin{2}, 1, []);
+                conv2_ = @(A, B) conv2(B, A, shape);
+            else
+                conv2_ = @(A, B) conv2(A, B, shape);
+            end
+            for a = 1:numel(varargin)-1
+                ca = double(varargin{a});
+                if ~isempty(d)
+                    for b = n:-1:1
+                        d_(:,:,b) = conv2_(ca, d(:,:,b));
+                    end
+                    d = d_;
+                    clear d_
+                end
+                if isautodiff(varargin{a})
+                    da = permute(grad(varargin{a}, v), [2 3 1]);
+                    for b = n:-1:1
+                        d_(:,:,b) = conv2_(da(:,:,b), c);
+                    end
+                    if isempty(d)
+                        d = d_;
+                    else
+                        d = d + d_;
+                    end
+                    clear d_
+                end
+                c = conv2_(ca, c);
+            end
+            d = permute(d, [3 1 2]);
+            c = autodiff(c, v, d);
+        end
+        
         % Debug
         function check_size(a)
             sz1 = size(a.value);
@@ -511,7 +561,8 @@ if isempty(vb)
     v = va;
     return;
 end
-if isequal(va, vb)
+n = numel(va);
+if n == numel(vb) && ((n == va(end) && n == vb(end)) || isequal(va, vb))
     c = bsxfun(func, ga, gb);
     v = va;
     return;
@@ -534,4 +585,19 @@ else
 end
 % Construct the output
 A = reshape(A(:,I), [szA(1) szI]);
+end
+
+function v = combine_varind(varargin)
+varargin = cellfun(@var_indices, varargin, 'UniformOutput', false);
+N = cellfun(@numel, varargin);
+[n, m] = max(N);
+v = varargin{m};
+varargin = varargin(N ~= 0);
+if all(N == n | N == 0) && all(cellfun(@(c) c(end) == n, varargin))
+    return;
+end
+if all(cellfun(@(c) isequal(v, c), varargin))
+    return;
+end
+v = unique([varargin{:}]);
 end
