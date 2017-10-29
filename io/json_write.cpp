@@ -25,12 +25,12 @@ json recurse_object(const mxArray* in)
             for (int b = 0; b < M; ++b)
                 obj_[fnames[b]] = recurse_object(mxGetFieldByNumber(in, a, b));
             if (N == 1)
-                obj = obj_;
+                obj = std::move(obj_);
             else
                 obj.push_back(std::move(obj_));
         }
     } else if (mxIsChar(in)) {
-        obj = mxArrayToString(in);
+        obj = json::parse(mxArrayToString(in));
     } else if (mxIsLogical(in)) {
         int N = mxGetNumberOfElements(in);
         const mxLogical* data = (const mxLogical*)mxGetData(in);
@@ -110,8 +110,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     std::ofstream fs(fname);
     if (!fs.is_open())
         mexErrMsgTxt("Failed to open file for writing.");
-    std::stringstream jsonStream;
-    jsonStream << std::setw(2) << std::setprecision(16) << j << std::endl;
-    fs << jsonStream.str();
+    fs << std::setw(2) << std::setprecision(16) << j << std::endl;
     fs.close();
 }
