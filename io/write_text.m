@@ -17,19 +17,23 @@
 %            overwritten (default).
 
 function write_text(A, fname, append)
-assert(isnumeric(A), 'Exporting non-numeric variables not supported');
-assert(isreal(A), 'Exporting complex numbers not tested');
-A = permute(A, [2 1 3]);
-A = A(:,:);
-switch class(A)
-    case 'double'
-        fmt = '%.16g ';
-    case 'single'
-        fmt = '%.8g ';
-    otherwise
-        fmt = '%d ';
+if ischar(A) || isstring(A)
+    fmt = '%s';
+else
+    assert(isnumeric(A), 'Exporting non-numeric variables not supported');
+    assert(isreal(A), 'Exporting complex numbers not tested');
+    A = permute(A, [2 1 3]);
+    A = A(:,:);
+    switch class(A)
+        case 'double'
+            fmt = '%.16g ';
+        case 'single'
+            fmt = '%.8g ';
+        otherwise
+            fmt = '%d ';
+    end
+    fmt = [repmat(fmt, [1 size(A, 1)]) '\n'];
 end
-fmt = [repmat(fmt, [1 size(A, 1)]) '\n'];
 permission = 'wt';
 if nargin > 2 && append(1)
     permission = 'at';
