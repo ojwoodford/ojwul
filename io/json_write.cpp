@@ -2,6 +2,7 @@
 #include "mex.h"
 #include <fstream>
 #include <vector>
+#include <utility>
 
 using json = nlohmann::json;
 
@@ -12,7 +13,7 @@ json recurse_object(const mxArray* in)
     if (mxIsCell(in)) {
         int N = mxGetNumberOfElements(in);
         for (int a = 0; a < N; ++a)
-            obj.push_back(recurse_object(mxGetCell(in, a)));
+            obj.push_back(std::move(recurse_object(mxGetCell(in, a))));
     } else if (mxIsStruct(in)) {
         int M = mxGetNumberOfFields(in);
         std::vector<const char*> fnames(M);
@@ -26,7 +27,7 @@ json recurse_object(const mxArray* in)
             if (N == 1)
                 obj = obj_;
             else
-                obj.push_back(obj_);
+                obj.push_back(std::move(obj_));
         }
     } else if (mxIsChar(in)) {
         obj = mxArrayToString(in);
@@ -103,14 +104,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mexErrMsgTxt("Second input argument expected to be a filename.");
         
     // Parse the object
-    const json j = recurse_object(prhs[0]);
+    const json j = std::move(recurse_object(prhs[0]));
     
     // Write out the file
     std::ofstream fs(fname);
     if (!fs.is_open())
         mexErrMsgTxt("Failed to open file for writing.");
     std::stringstream jsonStream;
-    jsonStream << std::setw(2) << std::setprecision(9) << j << std::endl;
+    jsonStream << std::setw(2) << std::setprecision(16) << j << std::endl;
     fs << jsonStream.str();
     fs.close();
 }
