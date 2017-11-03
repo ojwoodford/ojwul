@@ -6698,7 +6698,7 @@ class serializer
         }
 
         // get number of digits for a text -> float -> text round-trip
-        static constexpr auto d = std::numeric_limits<number_float_t>::digits10;
+        static constexpr auto d = std::numeric_limits<number_float_t>::max_digits10;
 
         // the actual conversion
         std::ptrdiff_t len = snprintf(number_buffer.data(), number_buffer.size(), "%.*g", d, x);

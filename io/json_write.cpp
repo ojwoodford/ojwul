@@ -1,19 +1,21 @@
 #include "private/json.hpp"
 #include "mex.h"
 #include <fstream>
+#include <iomanip>
 #include <vector>
 #include <utility>
 
 using json = nlohmann::json;
 
-json recurse_object(const mxArray* in)
+void recurse_object(const mxArray* in, json& obj)
 {
-    json obj;      
     // Go over all types
     if (mxIsCell(in)) {
         int N = mxGetNumberOfElements(in);
-        for (int a = 0; a < N; ++a)
-            obj.push_back(std::move(recurse_object(mxGetCell(in, a))));
+        for (int a = 0; a < N; ++a) {           
+            obj.emplace_back();
+            recurse_object(mxGetCell(in, a), obj.back());
+        }
     } else if (mxIsStruct(in)) {
         int M = mxGetNumberOfFields(in);
         std::vector<const char*> fnames(M);
@@ -23,7 +25,7 @@ json recurse_object(const mxArray* in)
         for (int a = 0; a < N; ++a) {
             json obj_;
             for (int b = 0; b < M; ++b)
-                obj_[fnames[b]] = recurse_object(mxGetFieldByNumber(in, a, b));
+                recurse_object(mxGetFieldByNumber(in, a, b), obj_[fnames[b]]);
             if (N == 1)
                 obj = std::move(obj_);
             else
@@ -91,7 +93,6 @@ json recurse_object(const mxArray* in)
     } else {
 		mexErrMsgTxt("Unrecognized type.");
     }
-    return obj;
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -104,12 +105,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mexErrMsgTxt("Second input argument expected to be a filename.");
         
     // Parse the object
-    const json j = std::move(recurse_object(prhs[0]));
+    std::unique_ptr<json> j(new json);
+    recurse_object(prhs[0], *j);
     
     // Write out the file
     std::ofstream fs(fname);
     if (!fs.is_open())
         mexErrMsgTxt("Failed to open file for writing.");
-    fs << std::setw(2) << std::setprecision(16) << j << std::endl;
+    fs << std::setw(2);
+    fs << std::setprecision(17);
+    fs << *j << std::endl;
     fs.close();
 }
