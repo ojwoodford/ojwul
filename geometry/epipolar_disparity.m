@@ -23,7 +23,7 @@ T2 = sum2(T .* T);
 Tx = sum(bsxfun(@times, T(1:2,:), x), 1);
 RXx = sum(RX(1:2,:) .* x, 1);
 n = T(3,:) .* RX2(1,:) - RXT(1,:) .* RX(3,:) + Tx .* RX2(2,:) - RXT(2,:) .* RXx;
-d = (T2(1,:) .* RX(3,:) - RXT(1,:) .* T(3,:) + RXx .* T2(2,:) - RXT(2,:) .* Tx);
+d = T2(1,:) .* RX(3,:) - RXT(1,:) .* T(3,:) + RXx .* T2(2,:) - RXT(2,:) .* Tx;
 if nargout > 1
     % Compute the derivative
     dx = bsxfun(@times, bsxfun(@times, T(1:2,:), RX2(2,:)) - bsxfun(@times, RX(1:2,:), RXT(2,:)), d) + ... 
