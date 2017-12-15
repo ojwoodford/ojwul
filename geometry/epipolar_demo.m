@@ -55,18 +55,11 @@ for a = 1:2
         Y = nn;
     else
         % Plot the epipolar line in the other image
-        L = state.F{a} * [x; y; 1];
-        if L(1) > L(2)
-            X = [0.5; state.im(3-a).sz(2)+0.5];
-            Y = (-L(3) - L(1) * X) / L(2);
-        else
-            Y = [0.5; state.im(3-a).sz(1)+0.5];
-            X = (-L(3) - L(2) * Y) / L(1);
-        end
+        [X, Y] = compute_line(state, a, x, y);
     end
     set(state.im(3-a).hL, 'XData', X, 'YData', Y);
 end
-drawnow;
+drawnow();
 end
 
 function mouseup_callback(fig, evnt)
@@ -83,14 +76,7 @@ for a = 1:2
         continue;
     end
     % Plot the epipolar line in the other image
-    L = state.F{a} * [x; y; 1];
-    if L(1) > L(2)
-        X = [0.5; state.im(3-a).sz(2)+0.5];
-        Y = (-L(3) - L(1) * X) / L(2);
-    else
-        Y = [0.5; state.im(3-a).sz(1)+0.5];
-        X = (-L(3) - L(2) * Y) / L(1);
-    end
+    [X, Y] = compute_line(state, a, x, y);
     set(fig, 'CurrentAxes', state.im(a).hAx);
     hold on
     plot(x, y, 'r+', 'Color', col);
@@ -101,6 +87,17 @@ for a = 1:2
     hold off
 end
 drawnow;
+end
+
+function [X, Y] = compute_line(state, a, x, y)
+L = state.F{a} * [x; y; 1];
+if L(1) > L(2)
+    X = [0.5; state.im(3-a).sz(2)+0.5];
+    Y = (-L(3) - L(1) * X) / L(2);
+else
+    Y = [0.5; state.im(3-a).sz(1)+0.5];
+    X = (-L(3) - L(2) * Y) / L(1);
+end
 end
 
    
