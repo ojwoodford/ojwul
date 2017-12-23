@@ -6,7 +6,7 @@
 % described here: https://en.wikipedia.org/wiki/Cohen-Sutherland_algorithm
 %
 %IN:
-% X - 2x2 matrix of [x1 x1; y1 y2] start and end points.
+% X - 2x2 matrix of [x1 x2; y1 y2] start and end points.
 % rect - 2x2 matrix of [left right; top bottom] rectangle boundaries.
 %
 %OUT:
