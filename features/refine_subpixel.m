@@ -15,7 +15,7 @@
 %            maximum/minimum from the integer position.
 %   val - 1xL estimated values at the subpixel maxima/minima.
 
-function [J, c] = refine_subpixel(V, c)
+function [offset, val] = refine_subpixel(V, c)
 
 % Compute the indices
 if islogical(c)
@@ -26,27 +26,20 @@ c = reshape(c, 1, []);
 % Compute some dimension values
 sz = cumprod(size(V));
 sz = [1 sz(1:end-1)]';
-sz2 = bsxfun(@plus, sz, sz') - diag(sz);
-sz3 = bsxfun(@minus, sz, sz');
 
-% Compute the Jacobian
-J = 0.5 * (V(bsxfun(@plus, c, sz)) - V(bsxfun(@minus, c, sz)));
+% Compute the Jacobian (central differences along each dimension)
+Vp = V(bsxfun(@plus, c, sz));
+Vn = V(bsxfun(@minus, c, sz));
+J = 0.5 * (Vp - Vn);
 
-% Compute the Hessian
-c = reshape(c, 1, 1, []);
-H = V(bsxfun(@plus, c, sz2)) + V(bsxfun(@minus, c, sz2)) - V(bsxfun(@plus, c, sz3)) - V(bsxfun(@minus, c, sz3));
-H = bsxfun(@times, H, eye(size(H, 1))*0.75+0.25);
+% Compute the Hessian (no skew though, to ensure positive semi-definite
+Vc = V(c);
+H = Vp + Vn - 2 * Vc;
 
 % Compute the offsets and values
+offset = -J ./ H;
 if nargout > 1
-    for a = 1:numel(c)
-        X = -H(:,:,a) \ J(:,a);
-        c(a) = V(c(a)) + J(:,a)' * X;
-        J(:,a) = X;
-    end
-    c = reshape(c, 1, []);
-else
-    for a = 1:numel(c)
-        J(:,a) = -H(:,:,a) \ J(:,a);
-    end
-end 
+    val = col(Vc, 2) + dot(J, offset);
+end
+assert(all(abs(offset(:)) < 1));
+end
