@@ -32,7 +32,7 @@ Vp = V(bsxfun(@plus, c, sz));
 Vn = V(bsxfun(@minus, c, sz));
 J = 0.5 * (Vp - Vn);
 
-% Compute the Hessian (no skew though, to ensure positive semi-definite
+% Compute the Hessian (no skew though, to ensure positive semi-definite)
 Vc = V(c);
 H = Vp + Vn - 2 * Vc;
 
