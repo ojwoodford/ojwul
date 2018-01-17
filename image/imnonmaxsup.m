@@ -16,16 +16,21 @@ function M = imnonmaxsup(I, radius)
 if nargin < 2
     radius = 1.5;
 end
+radius2 = radius * radius;
 
-% Use available non-maxima suppression function
-conn = 4 + 4 * ((radius * radius) >= 2);
-M = imregionalmax(I, conn);    
+% Find 4-connected maxima (must be greater than neighbours)
+M = I(2:end-1,2:end-1);
+M = M > I(1:end-2,2:end-1) & ...
+    M > I(3:end,2:end-1)   & ...
+    M > I(2:end-1,1:end-2) & ...
+    M > I(2:end-1,3:end);
+M = padarray(M, [1 1], false);
 
-if radius >= 2
+if radius2 >= 2
     % Extended supression required
     % Compute the neighbourhood
     [y, x] = ndgrid(-floor(radius):floor(radius));
-    nhood = (y .* y + x .* x) <= (radius * radius);
+    nhood = (y .* y + x .* x) <= radius2;
     
     % Dilate the image
     J = imdilate(I, nhood);
