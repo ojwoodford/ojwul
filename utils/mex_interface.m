@@ -5,7 +5,10 @@ classdef mex_interface < handle
         mexHandle; % Handle to the mex function
     end
     methods
-        %% Constructor - Create a new C++ class instance 
+        %% Constructor - Create a new C++ class instance
+        % Inputs:
+        %    mexfun - handle to the C++ class interface mex.
+        %    varargin - arguments passed to the mex when calling 'new'.
         function this = mex_interface(mexfun, varargin)
             this.mexHandle = mexfun;
             this.objectHandle = this.mexHandle('new', varargin{:});
