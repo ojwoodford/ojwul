@@ -13,7 +13,7 @@ public:
     class_handle(base *ptr) : signature_m(CLASS_HANDLE_SIGNATURE), name_m(typeid(base).name()), ptr_m(ptr) {}
     ~class_handle() { signature_m = 0; delete ptr_m; }
     bool isValid() { return ((signature_m == CLASS_HANDLE_SIGNATURE) && !strcmp(name_m.c_str(), typeid(base).name())); }
-    base *ptr() { return ptr_m; }
+    base* ptr() { return ptr_m; }
 
 private:
     uint32_t signature_m;

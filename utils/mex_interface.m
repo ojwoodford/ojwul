@@ -1,4 +1,10 @@
 %MEX_INTERFACE MATLAB wrapper to an underlying C++ class
+%
+% This interface assumes that the mex function uses the following standard
+% interface:
+%   Construction -    obj = mexfun('new',         ...)
+%   Destruction -           mexfun('delete', obj)
+%   Other methods - [...] = mexfun('method', obj, ...)
 classdef mex_interface < handle
     properties (Access = private, Hidden = true)
         objectHandle; % Handle to the underlying C++ class instance
