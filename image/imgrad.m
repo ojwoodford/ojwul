@@ -14,11 +14,13 @@
 %
 % IN:
 %   I - HxWxC input image.
-%   sigma - Scalar value determing the scale of the gradient filter
-%           (essentially the amount of pre-smoothing to apply). If 0, the
-%           optimal 7-tap values from Farid, H. and Simoncelli, E.
-%           "Differentiation of Discrete Multi-Dimensional Signals". IEEE
-%           Trans. Image Processing. 13(4): 496-508 (2004). are used.
+%   filter - String denoting named filter ['Central', 'Prewitt', 'Sobel',
+%            'Simoncelli'] or scalar value determing the scale of the 
+%            gradient filter (essentially the amount of pre-smoothing to
+%            apply). If 'Simoncelli', the 7-tap values from Farid, H. and
+%            Simoncelli, E. "Differentiation of Discrete Multi-Dimensional
+%            Signals". IEEE Trans. Image Processing. 13(4): 496-508 (2004).
+%            are used.
 %   mcm - multi-channel method: 'dizenzo' (default), 'norm', 'pca',
 %                               'rgb2gray', 'none'.
 %
@@ -28,7 +30,7 @@
 %   G  - HxWx2 array of gradient images in x and y directions, i.e. cat(3,
 %        Ix, Iy).
 
-function [Ix, Iy] = imgrad(I, sigma, mcm)
+function [Ix, Iy] = imgrad(I, filter, mcm)
 
 % Set the default arguments
 if nargin < 3
@@ -55,20 +57,36 @@ if c > 1
     end
 end
 
-if sigma
+if ischar(filter)
+    switch lower(filter)
+        case 'central'
+            % Central differences
+            g = 1;
+            gp = [1 0 -1];
+        case 'prewitt'
+            g = [1 1 1];
+            gp = [1 0 -1];
+        case 'sobel'
+            g = [1 2 1];
+            gp = [1 0 -1];
+        case 'simoncelli'
+            % Use 7-tap filter from:
+            % Farid, H. and Simoncelli, E. "Differentiation of Discrete Multi-Dimensional Signals"
+            % IEEE Trans. Image Processing. 13(4): 496-508 (2004)
+            g  = [0.004711  0.069321  0.245410  0.361117  0.245410  0.069321  0.004711];
+            gp = [0.018708  0.125376  0.193091  0.000000 -0.193091 -0.125376 -0.018708];
+        otherwise
+            error('Filter %s unrecognized', filter);
+    end
+else
     % Determine necessary filter support (for Gaussian).
-    X = max(floor((5 / 2) * sigma), 1);
+    X = max(floor((5 / 2) * filter), 1);
     X = -X:X;
     
     % Evaluate 1D Gaussian filter (and its derivative).
-    g = gauss_mask(sigma, 0, X);
-    gp = -gauss_mask(sigma, 1, X);
-else
-    % Use 7-tap filter from:
-    % Farid, H. and Simoncelli, E. "Differentiation of Discrete Multi-Dimensional Signals"
-    % IEEE Trans. Image Processing. 13(4): 496-508 (2004)
-    g  = [0.004711  0.069321  0.245410  0.361117  0.245410  0.069321  0.004711];
-    gp = [0.018708  0.125376  0.193091  0.000000 -0.193091 -0.125376 -0.018708];
+    g = gauss_mask(filter, 0, X);
+    g = g / sum(g);
+    gp = normalize(-gauss_mask(filter, 1, X));
 end
 
 % Calculate image gradients
