@@ -41,5 +41,6 @@ offset = -J ./ H;
 if nargout > 1
     val = col(Vc, 2) + dot(J, offset);
 end
-assert(all(abs(offset(:)) < 1));
+offset(:,any(abs(offset) >= 1)) = 0;
+%assert(all(abs(offset(:)) < 1));
 end
