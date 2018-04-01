@@ -169,7 +169,7 @@ while true
         time(2) = time(2) + toc(t);
     else
         % Call the triangle renderer
-        J = fill_triangles(I, Q, 1);
+        J = fill_triangles(I, Q, 0);
         time(1) = time(1) + toc(t);
     end
     t = tic;
