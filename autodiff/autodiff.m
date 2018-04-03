@@ -461,6 +461,11 @@ classdef autodiff
             end
         end
         
+        function c = expm_srt_3d(dP)
+            liegroup = {'','','so3','','','se3','sim3'};
+            c = exp(lie(liegroup{size(dP, 1)}), dP);
+        end
+        
         function c = conv2(varargin)
             % Get the shape
             if ischar(varargin{end})
