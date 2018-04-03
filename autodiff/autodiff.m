@@ -33,6 +33,14 @@ classdef autodiff
         function c = grad(obj, vars)
             if nargin < 2
                 vars = obj.varind;
+            elseif isscalar(vars) && vars < 0
+                % Return sparse output
+                n = numel(obj.value);
+                c = sparse(repmat(obj.varind(:), [n 1]), ...
+                           reshape(repmat(1:n, [numel(obj.varind(:)) 1]), [], 1), ...
+                           obj.deriv(:), ...
+                           -vars, n);
+                return;
             end
             n = numel(vars);
             if n == numel(obj.varind) && n == vars(end) && n == obj.varind(end)
