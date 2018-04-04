@@ -462,8 +462,19 @@ classdef autodiff
         end
         
         function c = expm_srt_3d(dP)
-            liegroup = {'','','so3','','','se3','sim3'};
-            c = exp(lie(liegroup{size(dP, 1)}), dP);
+            switch size(dP, 1)
+                case 3
+                    type = 'so3';
+                case 6
+                    type = 'se3';
+                    dP = dP([4:6 1:3],:);
+                case 7
+                    type = 'sim3';
+                    dP = dP([4:6 1:3 7],:);
+                otherwise
+                    error('Size of dP not recognized');
+            end
+            c = exp(lie(type), dP);
         end
         
         function c = conv2(varargin)
