@@ -467,10 +467,10 @@ classdef autodiff
                     type = 'so3';
                 case 6
                     type = 'se3';
-                    dP = dP([4:6 1:3],:);
+                    dP = autodiff(dP.value([4:6 1:3],:), dP.varind, dP.deriv(:,[4:6 1:3],:));
                 case 7
                     type = 'sim3';
-                    dP = dP([4:6 1:3 7],:);
+                    dP = autodiff(dP.value([4:6 1:3 7],:), dP.varind, dP.deriv(:,[4:6 1:3 7],:));
                 otherwise
                     error('Size of dP not recognized');
             end
