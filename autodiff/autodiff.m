@@ -118,7 +118,7 @@ classdef autodiff
             gb = [];
             c = bsxfun(@power, da, db);
             if isautodiff(a)
-                ga = bsxfun(@times, a.deriv, shiftdim(bsxfun(@times, bsxfun(@power, da, db-1), 1 ./ db), -1));
+                ga = bsxfun(@times, a.deriv, shiftdim(bsxfun(@times, bsxfun(@power, da, db-1), db), -1));
             end
             if isautodiff(b)
                 gb = bsxfun(@times, b.deriv, shiftdim(bsxfun(@times, c, log(da)), -1));
