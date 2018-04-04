@@ -111,6 +111,22 @@ classdef autodiff
             c = rdivide(b, a);
         end
         
+        function c = power(a, b)
+            da = double(a);
+            db = double(b);
+            ga = [];
+            gb = [];
+            c = bsxfun(@power, da, db);
+            if isautodiff(a)
+                ga = bsxfun(@times, a.deriv, shiftdim(bsxfun(@times, bsxfun(@power, da, db-1), 1 ./ db), -1));
+            end
+            if isautodiff(b)
+                gb = bsxfun(@times, b.deriv, shiftdim(bsxfun(@times, c, log(da)), -1));
+            end
+            [d, v] = combine_grads(ga, gb, var_indices(a), var_indices(b), size(c), 'add');
+            c = autodiff(c, v, d);
+        end
+        
         function c = bsxfun(func, a, b)
             c = func(a, b);
         end
