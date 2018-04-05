@@ -37,5 +37,5 @@ if str(1) ~= '@'
         cleanup_obj = onCleanup(@() cd(cwd));
     end
 end
-fun = str2func(str);
+fun = evalin('caller', sprintf('str2func(''%s'')', str));
 end
