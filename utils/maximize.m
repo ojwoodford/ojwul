@@ -13,9 +13,13 @@
 
 function maximize(hFig)
 if nargin < 1
-    hFig = gcf;
+    hFig = gcf();
 end
 drawnow % Required to avoid Java errors
 set(hFig, 'WindowStyle', 'normal');
+% Suppress warning about Java obsoletion
+oldState = warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
 jFig = get(handle(hFig), 'JavaFrame'); 
 jFig.setMaximized(true);
+warning(oldState);
+end
