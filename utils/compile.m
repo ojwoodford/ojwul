@@ -421,7 +421,7 @@ end
 function [str, co] = ceres(debug)
 co = '';
 str = get_user_dir('Ceres', @(p) exist(sprintf('%sinclude%sceres%sceres.h', p, filesep, filesep), 'file'));
-str = sprintf('-I"%sinclude" -L"%slib" -lceres', str, str);
+str = sprintf('-I"%sinclude" -I"%sconfig" -L"%slib" -lceres', str, str, str);
 end
 
 % Add the Suite Sparse library directory
