@@ -377,17 +377,8 @@ end
 % Create the compiler options for OpenCV
 function [str, co] = opencv(debug)
 co = '';
-str = get_user_dir('OpenCV', check_opencv_path);
-str = sprintf('-I"%sinclude/opencv" -L"%slib" -lcv210 -lcvaux210 -lcxcore210', str, str);
-end
-
-function good = check_opencv_path(path_str)
-% Check the OpenCV path is valid
-if ispc()
-    good = exist([path_str 'cvconfig.h.cmake'], 'file');
-else
-    good = exist([path_str 'cvconfig.h.in'], 'file');
-end
+str = get_user_dir('OpenCV', @(p) exist([p 'include/opencv2'], 'dir'));
+str = sprintf('-I"%sinclude" -L"%slib" -lopencv_core -lopencv_calib3d -lopencv_imgproc', str, str);
 end
 
 % Add the boost library directory
