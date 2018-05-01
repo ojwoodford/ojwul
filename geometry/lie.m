@@ -5,77 +5,12 @@ classdef lie
         sz;
     end
     methods
-        function this = lie(generators)
-            if ischar(generators)
-                switch generators
-                    case 'so2'
-                        % Generators for se2
-                        generators = [0 -1; 1 0];
-                    case 'se2'
-                        % Generators for se2
-                        generators = zeros(3, 3, 3);
-                        generators(1,3,1) = 1;
-                        generators(2,3,2) = 1;
-                        generators(1,2,3) = -1;
-                        generators(2,1,3) = 1;
-                    case 'aff2'
-                        % Generators for aff2 (2D affine transformation)
-                        generators = zeros(3, 3, 6);
-                        generators(1,3,1) = 1; % X translation
-                        generators(2,3,2) = 1; % Y translation
-                        generators(1,2,3) = -1; % Rotation
-                        generators(2,1,3) = 1;
-                        generators(1,1,4) = 1; % Uniform scale
-                        generators(2,2,4) = 1;
-                        generators(1,1,5) = 1; % Aspect ratio
-                        generators(2,2,5) = -1;
-                        generators(1,2,6) = 1; % Shear
-                        generators(2,1,6) = 1;
-                    case 'so3'
-                        generators = so3();
-                    case 'rxso3'
-                        generators = rxso3();
-                    case 'uv3' % 3D unit vector
-                        generators = so3();
-                        generators = generators(:,:,2:3);
-                    case 'rxuv3' % 3D vector parameterized by rotation and scale
-                        generators = rxso3();
-                        generators = generators(:,:,2:4);
-                    case 'se3'
-                        % Generators for se3
-                        generators = zeros(4, 4, 6);
-                        generators(1,4,1) = 1;
-                        generators(2,4,2) = 1;
-                        generators(3,4,3) = 1;
-                        generators(3,2,4) = 1;
-                        generators(1:3,1:3,4:6) = so3();
-                    case 'sim3'
-                        % Generators for sim3
-                        generators = zeros(4, 4, 7);
-                        generators(1,4,1) = 1;
-                        generators(2,4,2) = 1;
-                        generators(3,4,3) = 1;
-                        generators(3,2,4) = 1;
-                        generators(1:3,1:3,4:7) = rxso3();
-                    case 'sl3'
-                        % Generators for sl3
-                        % From "Homography-based 2D Visual Tracking and
-                        % Servoing", Benhimane & Malis
-                        generators = zeros(3, 3, 8);
-                        generators(1,3,1) = 1; % x translation
-                        generators(2,3,2) = 1; % y translation
-                        generators(1,2,3) = 1;
-                        generators(1:3,1:3,4:6) = so3();
-                        generators(1,1,7) = 1;
-                        generators(2,2,7) = -1;
-                        generators(2,2,8) = -1;
-                        generators(3,3,8) = 1;
-                    otherwise
-                        error('Lie group not recognized');
-                end
+        function this = lie(generators_)
+            if ischar(generators_)
+                generators_ = generators(generators_);
             end
-            this.sz = [size(generators, 1) size(generators, 2)];
-            this.G = reshape(generators, [], size(generators, 3));
+            this.sz = [size(generators_, 1) size(generators_, 2)];
+            this.G = reshape(generators_, [], size(generators_, 3));
             this.Gv = bsxfun(@times, this.G, 1 ./ sum(abs(this.G), 1))';
         end
         
@@ -147,22 +82,81 @@ classdef lie
     end
 end
 
-function G = so3()
-% Generators for so3
-G = zeros(3, 3, 3);
-G(3,2,1) = 1;
-G(2,3,1) = -1;
-G(1,3,2) = 1;
-G(3,1,2) = -1;
-G(1,2,3) = -1;
-G(2,1,3) = 1;
+function G = generators(group)
+switch group
+    case 'so2'
+        % Generators for so2
+        G = [0 -1; 1 0];
+    case 'se2'
+        % Generators for se2
+        G = zeros(3, 3, 3);
+        G(1,3,1) = 1; % X translation
+        G(2,3,2) = 1; % Y translation
+        G(1:2,1:2,3) = generators('so2'); % Rotation
+    case 'sim2'
+        % Generators for sim2
+        G = zeros(3, 3, 3);
+        G(:,:,1:3) = generators('se2');
+        G(1,1,4) = 1; % Uniform scale
+        G(2,2,4) = 1;
+    case 'aff2'
+        % Generators for aff2 (2D affine transformation)
+        G = zeros(3, 3, 6);
+        G(:,:,1:4) = generators('sim2');
+        G(1,1,5) = 1; % Aspect ratio
+        G(2,2,5) = -1;
+        G(1,2,6) = 1; % Shear
+        G(2,1,6) = 1;
+    case 'so3'
+        % Generators for so3
+        G = zeros(3, 3, 3);
+        G(3,2,1) = 1;
+        G(2,3,1) = -1;
+        G(1,3,2) = 1;
+        G(3,1,2) = -1;
+        G(1,2,3) = -1;
+        G(2,1,3) = 1;
+    case 'rxso3'
+        % Generators for rxso3
+        G = generators('so3');
+        G(1,1,4) = 1;
+        G(2,2,4) = 1;
+        G(3,3,4) = 1;
+    case 'uv3' % 3D unit vector
+        G = generators('so3');
+        G = G(:,:,2:3);
+    case 'rxuv3' % 3D vector parameterized by rotation and scale
+        G = generators('rxso3');
+        G = G(:,:,2:4);
+    case 'se3'
+        % Generators for se3
+        G = zeros(4, 4, 6);
+        G(1,4,1) = 1;
+        G(2,4,2) = 1;
+        G(3,4,3) = 1;
+        G(1:3,1:3,4:6) = generators('so3');
+    case 'sim3'
+        % Generators for sim3
+        G = zeros(4, 4, 7);
+        G(1,4,1) = 1;
+        G(2,4,2) = 1;
+        G(3,4,3) = 1;
+        G(1:3,1:3,4:7) = generators('rxso3');
+    case 'sl3'
+        % Generators for sl3
+        % From "Homography-based 2D Visual Tracking and
+        % Servoing", Benhimane & Malis
+        G = zeros(3, 3, 8);
+        G(1,3,1) = 1; % x translation
+        G(2,3,2) = 1; % y translation
+        G(1,2,3) = 1;
+        G(1:3,1:3,4:6) = generators('so3');
+        G(1,1,7) = 1;
+        G(2,2,7) = -1;
+        G(2,2,8) = -1;
+        G(3,3,8) = 1;
+    otherwise
+        error('Lie group %s not recognized', group);
 end
-
-function G = rxso3()
-% Generators for rxso3
-G = so3();
-G(1,1,4) = 1;
-G(2,2,4) = 1;
-G(3,3,4) = 1;
 end
        

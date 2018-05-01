@@ -439,6 +439,10 @@ classdef autodiff
             c = true;
         end
         
+        function c = isfloat(a)
+            c = isfloat(a.value);
+        end
+        
         function c = isempty(a)
             c = isempty(a.value);
         end
