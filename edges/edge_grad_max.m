@@ -14,8 +14,8 @@
 %   M - HxW logical image of pixels to look for maxima at.
 %
 % OUT:
-%   Mo - HxWx2 gradient and gradient derivative magnitudes image, but 0 if
-%        not locally maximal.
+%   Mo - HxWx3 masked gradient (0 if not locally maximal), gradient and
+%        gradient derivative magnitudes image.
 %   X - 2x(sum(M(:))) array of subpixel edgelet dimensions.
 
 function [M, X] = edge_grad_max(G, thresh, M)
