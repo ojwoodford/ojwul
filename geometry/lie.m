@@ -11,7 +11,10 @@ classdef lie
             end
             this.sz = [size(generators_, 1) size(generators_, 2)];
             this.G = reshape(generators_, [], size(generators_, 3));
-            this.Gv = bsxfun(@times, this.G, 1 ./ sum(abs(this.G), 1))';
+            M = this.G ~= 0;
+            this.Gv = this.G;
+            this.Gv(M) = 1 ./ this.G(M);
+            this.Gv = bsxfun(@times, this.Gv, 1 ./ sum(M, 1))';
         end
         
         % NDIMS - Return the dimensionality of the space
@@ -144,17 +147,22 @@ switch group
         G(1:3,1:3,4:7) = generators('rxso3');
     case 'sl3'
         % Generators for sl3
-        % From "Homography-based 2D Visual Tracking and
-        % Servoing", Benhimane & Malis
+        % From "Liegroups for Computer Vision", Ethan Eade
+        % http://ethaneade.com/lie_groups.pdf
         G = zeros(3, 3, 8);
-        G(1,3,1) = 1; % x translation
-        G(2,3,2) = 1; % y translation
-        G(1,2,3) = 1;
-        G(1:3,1:3,4:6) = generators('so3');
-        G(1,1,7) = 1;
-        G(2,2,7) = -1;
-        G(2,2,8) = -1;
-        G(3,3,8) = 1;
+        G(1,3,1) = 1;
+        G(2,3,2) = 1;
+        G(1,2,3) = -1;
+        G(2,1,3) = 1;
+        G(1,1,4) = 1;
+        G(2,2,4) = 1;
+        G(3,3,4) = -2;
+        G(1,1,5) = 1;
+        G(2,2,5) = -1;
+        G(1,2,6) = 1;
+        G(2,1,6) = 1;
+        G(3,1,7) = 1;
+        G(3,2,8) = 1;
     otherwise
         error('Lie group %s not recognized', group);
 end
