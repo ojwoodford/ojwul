@@ -80,6 +80,22 @@ classdef lie
             end
         end
     end
+    methods (Static)
+        function check_orthogonal()
+            groups = {'so2', 'se2', 'sim2', 'aff2', 'so3', 'rxso3', 'uv3', 'rxuv3', 'se3', 'sim3', 'sl3'};
+            for group = groups
+                % Chech the generators are orthogonal
+                G = generators(group{1});
+                G = reshape(G, [], size(G, 3));
+                dot_prod = tril(squeeze(sum(bsxfun(@times, G, permute(G, [1 3 2])), 1)), -1);
+                [y, x] = find(abs(dot_prod) > 1e-14);
+                if ~isempty(y)
+                    y = [y(:)'; x(:)'];
+                    warning('The following pairs of %s group generators are not orthogonal:\n%s', group{1}, sprintf('   %d,%d\n', y));
+                end
+            end
+        end
+    end
 end
 
 function G = generators(group)
@@ -145,14 +161,17 @@ switch group
     case 'sl3'
         % Generators for sl3
         G = zeros(3, 3, 8);
-        G(:,:,1:3) = generators('so3');
-        G(2,1,4) = 1;
-        G(3,1,5) = 1;
-        G(3,2,6) = 1;
-        G(1,1,7) = 1;
-        G(2,2,7) = -1;
+        G_ = generators('so3');
+        G(:,:,1:3) = G_;
+        G_ = abs(G_) / 2.5;
+        G(:,:,4) = 0.5 * G_(:,:,3) - G_(:,:,1) - G_(:,:,2);
+        G(:,:,5) = G_(:,:,2) + G_(:,:,3) - 0.5 * G_(:,:,1);
+        G(:,:,6) = G_(:,:,3) + G_(:,:,1) - 0.5 * G_(:,:,2);
+        G(1,1,7) = -1;
+        G(3,3,7) = 1;
+        G(1,1,8) = 0.5;
+        G(3,3,8) = 0.5;
         G(2,2,8) = -1;
-        G(3,3,8) = 1;
     otherwise
         error('Lie group %s not recognized', group);
 end
