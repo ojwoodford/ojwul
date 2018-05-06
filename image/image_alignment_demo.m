@@ -14,6 +14,7 @@ if nargin < 1
     A = imread('peppers.png');
 end
 sz = size(A);
+render();
 
 % Create a target image
 [y, x] = ndgrid(linspace(sz(1)/2-50, sz(1)/2+50, 100), linspace(sz(2)/2-50, sz(2)/2+50, 100));
@@ -68,27 +69,44 @@ end
 
 function render(ref, r, tgt)
 persistent handles
+if nargin == 0
+    handles = [];
+    return;
+end
+cost = r(:)' * r(:);
 r = log(1 + sum(r .* r, 3));
 tgt = double(tgt) / 255;
 try
+    handles.X = [handles.X handles.X(end)+1];
+    handles.Y = [handles.Y cost];
     figure(handles.fig);
     set(handles.diff_im, 'CData', r);
     set(handles.tgt_im, 'CData', tgt);
+    set(handles.plot, 'XData', handles.X, 'YData', handles.Y);
 catch
     handles.fig = figure(5680);
     clf;
-    axes('OuterPosition', [0 0 1/3 1]);
+    set(handles.fig, 'Color', 'w');
+    axes('OuterPosition', [0 0.5 1/3 0.5]);
     image(ref/255);
     title 'Reference image'
     axis equal off
-    axes('OuterPosition', [1/3 0 1/3 1]);
+    axes('OuterPosition', [1/3 0.5 1/3 0.5]);
     handles.diff_im = imagesc(r);
     title 'Pixel difference magnitude'
     axis equal off
-    axes('OuterPosition', [2/3 0 1/3 1]);
+    axes('OuterPosition', [2/3 0.5 1/3 0.5]);
     handles.tgt_im = image(tgt);
     title 'Target image'
     axis equal off
+    axes('OuterPosition', [0 0 1 0.5]);
+    handles.X = 1;
+    handles.Y = cost;
+    handles.plot = plot(handles.X, handles.Y);
+    xlim([1 100]);
+    ylim([0 cost*1.05]);
+    ylabel Cost
+    xlabel Iteration
 end
 drawnow;
 end
