@@ -163,7 +163,7 @@ switch group
         G = zeros(3, 3, 8);
         G_ = generators('so3');
         G(:,:,1:3) = G_;
-        G_ = abs(G_) / 2.5;
+        G_ = abs(G_);
         G(:,:,4) = 0.5 * G_(:,:,3) - G_(:,:,1) - G_(:,:,2);
         G(:,:,5) = G_(:,:,2) + G_(:,:,3) - 0.5 * G_(:,:,1);
         G(:,:,6) = G_(:,:,3) + G_(:,:,1) - 0.5 * G_(:,:,2);
@@ -175,5 +175,7 @@ switch group
     otherwise
         error('Lie group %s not recognized', group);
 end
+% Normalize the generators
+G = bsxfun(@times, G, 1 ./ sqrt(sum(sum(G .* G, 1), 2)));
 end
        
