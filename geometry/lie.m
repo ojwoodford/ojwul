@@ -11,10 +11,7 @@ classdef lie
             end
             this.sz = [size(generators_, 1) size(generators_, 2)];
             this.G = reshape(generators_, [], size(generators_, 3));
-            M = this.G ~= 0;
-            this.Gv = this.G;
-            this.Gv(M) = 1 ./ this.G(M);
-            this.Gv = bsxfun(@times, this.Gv, 1 ./ sum(M, 1))';
+            this.Gv = pinv(this.G);
         end
         
         % NDIMS - Return the dimensionality of the space
