@@ -3,6 +3,7 @@
 #include <limits> // For std::numeric_limits
 #include <utility> // For std::pair
 #include <cstdlib> // For std::abs
+#include <vector>
 
 // These methods all use the following conventions:
 //    1. The centre of the top left pixel is at 0,0
@@ -11,42 +12,56 @@
 template<class T, class U, class V> class IM_BASE
 {
 public:
+	// Constructor
+	IM_BASE(const T* im_, U o, int w, int h, int c, int wp, int pp) :
+		im(im_),
+		oobv(o),
+		height(h),
+		width(w),
+		nchannels(c),
+		width_pitch(wp == 0 ? w : wp),
+		plane_pitch(pp == 0 ? width_pitch * h : pp) {}
+
     // Image dimensions
 	inline int Width() const { return width; }
 	inline int Height() const { return height; }
 	inline int Channels() const { return nchannels; }
+	inline int WidthPitch() const { return width_pitch; }
+	inline int PlanePitch() const { return plane_pitch; }
     
     // Other helpers
+	inline U OOBV() const { return oobv; }
 	inline void SetOOBV(U new_oobv) { oobv = new_oobv; }
+
+	inline int ind_symmetric(int x, int y) const // Lookup with symmetric padding
+	{
+		if (x < 0 || x >= width) {
+			x = x % (2 * width);
+			x = (x + 2 * width) % (2 * width);
+			if (x >= width)
+				x = 2 * width - 1 - x;
+		}
+		if (y < 0 || y >= height) {
+			y = y % (2 * height);
+			y = (y + 2 * height) % (2 * height);
+			if (y >= height)
+				y = 2 * height - 1 - y;
+		}
+		return x + y * width_pitch;
+	}
+
+	// Get pixel values
+	inline const T& operator[](int ind) const { return im[ind]; }
+	inline V at(int ind) const { return static_cast<V>(im[ind]); }
     
-protected:    
-    const T* im;
-    V* im_copy;
-    int height;
-    int width;
-    int nchannels;
-    int width_pitch;
-    int plane_pitch;
+private:    
+    const T* const im;
+    const int height;
+    const int width;
+    const int nchannels;
+    const int width_pitch;
+    const int plane_pitch;
     U oobv;
-    V dw;
-    V dh;
-    
-    inline int ind_symmetric(int x, int y) const // Lookup with symmetric padding
-    {
-        if (x < 0 || x >= width) {
-            x = x % (2 * width);
-            x = (x + 2 * width) % (2 * width);
-            if (x >= width)
-                x = 2 * width - 1 - x;
-        }
-        if (y < 0 || y >= height) {
-            y = y % (2 * height);
-            y = (y + 2 * height) % (2 * height);
-            if (y >= height)
-                y = 2 * height - 1 - y;
-        }
-        return x + y * width_pitch;
-    }
 };
 
 // Function for correct rounding
@@ -63,145 +78,136 @@ static inline U saturate_cast(T val)
     return out;
 }
 
-template<class T, class U, class V> class IM_NEAR : public IM_BASE<T, U, V>
+template<class T, class U, class V> class IM_NEAR
 {
 public:
     // Constructor
-    IM_NEAR(const T *im_, U o, int w, int h, int c=1, int wp=0, int pp=0) {
-        IM_BASE<T, U, V>::im = im_;
-        IM_BASE<T, U, V>::oobv = o;
-        IM_BASE<T, U, V>::width = w;
-        IM_BASE<T, U, V>::dw = static_cast<V>(w) - static_cast<V>(0.5);
-        IM_BASE<T, U, V>::height = h;
-        IM_BASE<T, U, V>::dh = static_cast<V>(h) - static_cast<V>(0.5);
-        IM_BASE<T, U, V>::nchannels = c;
-        IM_BASE<T, U, V>::width_pitch = wp == 0 ? IM_BASE<T, U, V>::width : wp;
-        IM_BASE<T, U, V>::plane_pitch = pp == 0 ? IM_BASE<T, U, V>::width_pitch * IM_BASE<T, U, V>::height : pp;
-    }
+    IM_NEAR(const T *im_, U o, int w, int h, int c=1, int wp=0, int pp=0) : 
+		im(im_, o, w, h, c, wp, pp),
+		dw(static_cast<V>(w) - static_cast<V>(0.5)),
+		dh(static_cast<V>(h) - static_cast<V>(0.5)) {}
     
     // Lookup function
     inline void lookup(U *B, const V X, const V Y, const int out_pitch=1) {
-        if (X >= -0.5 && X < IM_BASE<T, U, V>::dw && Y >= -0.5 && Y < IM_BASE<T, U, V>::dh) {
+        if (X >= -0.5 && X < dw && Y >= -0.5 && Y < dh) {
 			// Find nearest neighbour
-			int k = static_cast<int>(X + static_cast<V>(0.5)) + static_cast<int>(Y + static_cast<V>(0.5)) * IM_BASE<T, U, V>::width_pitch;
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, k += IM_BASE<T, U, V>::plane_pitch)
-				*B = saturate_cast<U, T>(IM_BASE<T, U, V>::im[k]);
+			int k = static_cast<int>(X + static_cast<V>(0.5)) + static_cast<int>(Y + static_cast<V>(0.5)) * im.WidthPitch();
+			for (int c = 0; c < im.Channels(); ++c, B += out_pitch, k += im.PlanePitch())
+				*B = saturate_cast<U, T>(im[k]);
 		} else {
 			// Out of bounds
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch)
-				*B = IM_BASE<T, U, V>::oobv;
+			for (int c = 0; c < im.Channels(); ++c, B += out_pitch)
+				*B = im.OOBV();
 		}
     }
     
     // Lookup value and gradient function
     inline void lookup_grad(U *B, U *G, const V X, const V Y, const int out_pitch=1, const int grad_pitch=2) {
-        if (X >= -0.5 && X < IM_BASE<T, U, V>::dw && Y >= -0.5 && Y < IM_BASE<T, U, V>::dh) {
+        if (X >= -0.5 && X < dw && Y >= -0.5 && Y < dh) {
 			// Find nearest neighbour
             int y = static_cast<int>(Y + static_cast<V>(0.5));
             int x = static_cast<int>(X + static_cast<V>(0.5));
-			int k = x + y * IM_BASE<T, U, V>::width_pitch;
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch, k += IM_BASE<T, U, V>::plane_pitch)
+			int k = x + y * im.WidthPitch();
+			for (int c = 0; c < im.Channels(); ++c, B += out_pitch, G += grad_pitch, k += im.PlanePitch())
             {
-				*B = saturate_cast<U, T>(IM_BASE<T, U, V>::im[k]);
+				*B = saturate_cast<U, T>(im[k]);
                 if (y == 0)
-                    G[0] = saturate_cast<U, V>(static_cast<V>(IM_BASE<T, U, V>::im[k+IM_BASE<T, U, V>::width_pitch]) - static_cast<V>(IM_BASE<T, U, V>::im[k]));
-                else if (y == IM_BASE<T, U, V>::height-1)
-                    G[0] = saturate_cast<U, V>(static_cast<V>(IM_BASE<T, U, V>::im[k]) - static_cast<V>(IM_BASE<T, U, V>::im[k-IM_BASE<T, U, V>::width_pitch]));
+                    G[0] = saturate_cast<U, V>(im.at(k+im.WidthPitch()) - im.at(k));
+                else if (y == im.Height()-1)
+                    G[0] = saturate_cast<U, V>(im.at(k) - im.at(k-im.WidthPitch()));
                 else
-                    G[0] = saturate_cast<U, V>(static_cast<V>(0.5) * (static_cast<V>(IM_BASE<T, U, V>::im[k+IM_BASE<T, U, V>::width_pitch]) - static_cast<V>(IM_BASE<T, U, V>::im[k-IM_BASE<T, U, V>::width_pitch])));
+                    G[0] = saturate_cast<U, V>(static_cast<V>(0.5) * (im.at(k+im.WidthPitch()) - im.at(k-im.WidthPitch())));
                 if (x == 0)
-                    G[1] = saturate_cast<U, V>(static_cast<V>(IM_BASE<T, U, V>::im[k+1]) - static_cast<V>(IM_BASE<T, U, V>::im[k]));
-                else if (x == IM_BASE<T, U, V>::width-1)
-                    G[1] = saturate_cast<U, V>(static_cast<V>(IM_BASE<T, U, V>::im[k]) - static_cast<V>(IM_BASE<T, U, V>::im[k-1]));
+                    G[1] = saturate_cast<U, V>(im.at(k+1) - im.at(k));
+                else if (x == im.Width()-1)
+                    G[1] = saturate_cast<U, V>(im.at(k) - im.at(k-1));
                 else
-                    G[1] = saturate_cast<U, V>(static_cast<V>(0.5) * (static_cast<V>(IM_BASE<T, U, V>::im[k+1]) - static_cast<V>(IM_BASE<T, U, V>::im[k-1])));
+                    G[1] = saturate_cast<U, V>(static_cast<V>(0.5) * (im.at(k+1) - im.at(k-1)));
             }
 		} else {
 			// Out of bounds
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch) {
-                *B = IM_BASE<T, U, V>::oobv;
+			for (int c = 0; c < im.Channels(); ++c, B += out_pitch, G += grad_pitch) {
+                *B = im.OOBV();
                 G[0] = static_cast<U>(0);
                 G[1] = static_cast<U>(0);
             }
 		}
     }
+
+private:
+	const IM_BASE<T, U, V> im;
+	const V dw;
+	const V dh;
 };
 
-template<class T, class U, class V> class IM_LIN : public IM_BASE<T, U, V>
+template<class T, class U, class V> class IM_LIN
 {
 public:
     // Constructor
-    IM_LIN(const T *im_, U o, int w, int h, int c=1, int wp=0, int pp=0) {
-        IM_BASE<T, U, V>::im = im_;
-        IM_BASE<T, U, V>::oobv = o;
-        IM_BASE<T, U, V>::width = w;
-        IM_BASE<T, U, V>::dw = static_cast<V>(w) - static_cast<V>(1.0);
-        IM_BASE<T, U, V>::height = h;
-        IM_BASE<T, U, V>::dh = static_cast<V>(h) - static_cast<V>(1.0);
-        IM_BASE<T, U, V>::nchannels = c;
-        IM_BASE<T, U, V>::width_pitch = wp == 0 ? IM_BASE<T, U, V>::width : wp;
-        IM_BASE<T, U, V>::plane_pitch = pp == 0 ? IM_BASE<T, U, V>::width_pitch * IM_BASE<T, U, V>::height : pp;
-    }
+    IM_LIN(const T *im_, U o, int w, int h, int c=1, int wp=0, int pp=0) :
+		im(im_, o, w, h, c, wp, pp),
+		dw(static_cast<V>(w) - static_cast<V>(1.0)),
+		dh(static_cast<V>(h) - static_cast<V>(1.0)) {}
     
     // Lookup function
     inline void lookup(U *B, const V X, const V Y, const int out_pitch=1) {
-        if (X >= static_cast<V>(0.0) && Y >= static_cast<V>(0.0) && X <= IM_BASE<T, U, V>::dw && Y <= IM_BASE<T, U, V>::dh) {
+        if (X >= static_cast<V>(0.0) && Y >= static_cast<V>(0.0) && X <= dw && Y <= dh) {
             // Compute integer coordinates and offsets
             int y = static_cast<int>(Y);
             int x = static_cast<int>(X);
             V v = Y - y;
             V u = X - x;
             // Check for boundary cases
-            if (X == IM_BASE<T, U, V>::dw) {
+            if (X == dw) {
                 x = x > 0 ? --x : 0;
                 u = static_cast<V>(1.0);
             }
-            if (Y == IM_BASE<T, U, V>::dh) {
+            if (Y == dh) {
                 y = y > 0 ? --y : 0;
                 v = static_cast<V>(1.0);
             }
             // Compute the linear index
-            int k = x + y * IM_BASE<T, U, V>::width_pitch;
+            int k = x + y * im.WidthPitch();
             // For each image channel...
-            for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, k += IM_BASE<T, U, V>::plane_pitch) {
+            for (int c = 0; c < im.Channels(); ++c, B += out_pitch, k += im.PlanePitch()) {
                 // Do the interpolation
-                V out = static_cast<V>(IM_BASE<T, U, V>::im[k]) + (static_cast<V>(IM_BASE<T, U, V>::im[k+1]) - static_cast<V>(IM_BASE<T, U, V>::im[k])) * u;
-                out += ((static_cast<V>(IM_BASE<T, U, V>::im[k+IM_BASE<T, U, V>::width_pitch]) - out) + (static_cast<V>(IM_BASE<T, U, V>::im[k+IM_BASE<T, U, V>::width_pitch+1]) - static_cast<V>(IM_BASE<T, U, V>::im[k+IM_BASE<T, U, V>::width_pitch])) * u) * v;
+                V out = im.at(k) + (im.at(k+1) - im.at(k)) * u;
+                out += ((im.at(k+im.WidthPitch()) - out) + (im.at(k+im.WidthPitch()+1) - im.at(k+im.WidthPitch())) * u) * v;
                 *B = saturate_cast<U, V>(out);
             }
 		} else {
 			// Out of bounds
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch)
-				*B = IM_BASE<T, U, V>::oobv;
+			for (int c = 0; c < im.Channels(); ++c, B += out_pitch)
+				*B = im.OOBV();
 		}
     }
     
     // Lookup value and gradient function
     inline void lookup_grad(U *B, U *G, const V X, const V Y, const int out_pitch=1, const int grad_pitch=2) {
-        if (X >= static_cast<V>(0.0) && Y >= static_cast<V>(0.0) && X <= IM_BASE<T, U, V>::dw && Y <= IM_BASE<T, U, V>::dh) {
+        if (X >= static_cast<V>(0.0) && Y >= static_cast<V>(0.0) && X <= dw && Y <= dh) {
             // Compute integer coordinates and offsets
             int y = static_cast<int>(Y);
             int x = static_cast<int>(X);
             V v = Y - y;
             V u = X - x;
             // Check for boundary cases
-            if (X == IM_BASE<T, U, V>::dw) {
+            if (X == dw) {
                 x = x > 0 ? --x : 0;
                 u = static_cast<V>(1.0);
             }
-            if (Y == IM_BASE<T, U, V>::dh) {
+            if (Y == dh) {
                 y = y > 0 ? --y : 0;
                 v = static_cast<V>(1.0);
             }
             // Compute the linear index
-            int k = x + y * IM_BASE<T, U, V>::width_pitch;
+            int k = x + y * im.WidthPitch();
             // For each image channel...
-            for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch, k += IM_BASE<T, U, V>::plane_pitch) {
+            for (int c = 0; c < im.Channels(); ++c, B += out_pitch, G += grad_pitch, k += im.PlanePitch()) {
                 // Sample the image
-                V v00 = static_cast<V>(IM_BASE<T, U, V>::im[k]);
-                V v10 = static_cast<V>(IM_BASE<T, U, V>::im[k+1]);
-                V v01 = static_cast<V>(IM_BASE<T, U, V>::im[k+IM_BASE<T, U, V>::width_pitch]);
-                V v11 = static_cast<V>(IM_BASE<T, U, V>::im[k+IM_BASE<T, U, V>::width_pitch+1]);
+                V v00 = im.at(k);
+                V v10 = im.at(k+1);
+                V v01 = im.at(k+im.WidthPitch());
+                V v11 = im.at(k+im.WidthPitch()+1);
                 // Linearly interpolate
                 V d0 = v10 - v00;
                 V d1 = v11 - v01;
@@ -217,64 +223,62 @@ public:
             }
 		} else {
 			// Out of bounds
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch) {
-                *B = IM_BASE<T, U, V>::oobv;
+			for (int c = 0; c < im.Channels(); ++c, B += out_pitch, G += grad_pitch) {
+                *B = im.OOBV();
                 G[0] = static_cast<U>(0);
                 G[1] = static_cast<U>(0);
             }
 		}
     }
+
+private:
+	const IM_BASE<T, U, V> im;
+	const V dw;
+	const V dh;
 };
 
 // This shifted interpolation method is described in:
 // "Linear Interpolation Revitalized", T. Blu, P. Thevenaz, M. Unser.
 // IEEE Transactions on Image Processing, vol. 13, no. 5, May 2004.
 #define __SHIFT_FACTOR__ 0.21132486540518713 // 0.5 * (1 - sqrt(3) / 3)
-template<class T, class U, class V> class IM_SHIFT : public IM_BASE<T, U, V>
+template<class T, class U, class V> class IM_SHIFT
 {
 public:
     // Constructor
-    IM_SHIFT(const T *im_, U o, int w, int h, int c=1, int wp=0, int pp=0) {
-        IM_BASE<T, U, V>::oobv = o;
-        IM_BASE<T, U, V>::width = w;
-        IM_BASE<T, U, V>::dw = static_cast<V>(w) - static_cast<V>(1.0);
-        IM_BASE<T, U, V>::height = h;
-        IM_BASE<T, U, V>::dh = static_cast<V>(h) - static_cast<V>(1.0);
-        IM_BASE<T, U, V>::nchannels = c;
-        wp = wp == 0 ? IM_BASE<T, U, V>::width : wp;
-        pp = pp == 0 ? wp * IM_BASE<T, U, V>::height : pp;
-        IM_BASE<T, U, V>::width_pitch = IM_BASE<T, U, V>::width;
-        IM_BASE<T, U, V>::plane_pitch = IM_BASE<T, U, V>::width_pitch * IM_BASE<T, U, V>::height;
+	IM_SHIFT(const T *im_, U o, int w, int h, int c = 1, int wp = 0, int pp = 0) :
+		storage(w*h*c),
+		im(storage.data(), o, w, h, c, 0, 0),
+		dw(static_cast<V>(w) - static_cast<V>(1.0)),
+		dh(static_cast<V>(h) - static_cast<V>(1.0))
+	{
+		if (wp == 0)
+			wp = w;
+		if (pp == 0)
+			pp = wp * h;
         
-        // Allocate memory for the new coefficients
-        IM_BASE<T, U, V>::im_copy = new V[IM_BASE<T, U, V>::plane_pitch*IM_BASE<T, U, V>::nchannels];
-        
+		// Convert the image
         const V factor = static_cast<V>(1.0 / (1.0 - __SHIFT_FACTOR__));
         const V pole = static_cast<V>(__SHIFT_FACTOR__ / (__SHIFT_FACTOR__ - 1.0));
         
         // Conversion along rows
-        for (c = 0; c < IM_BASE<T, U, V>::nchannels; ++c) {
-            for (h = 0; h < IM_BASE<T, U, V>::height; ++h) {
-                V *im_ptr = &IM_BASE<T, U, V>::im_copy[c*IM_BASE<T, U, V>::plane_pitch+h*IM_BASE<T, U, V>::width_pitch];
+        for (c = 0; c < im.Channels(); ++c) {
+            for (h = 0; h < im.Height(); ++h) {
+                V *im_ptr = &storage[c*im.PlanePitch()+h*im.WidthPitch()];
                 const T *im__ptr = &im_[c*pp+h*wp];
                 im_ptr[0] = static_cast<V>(im__ptr[0]);
-                for (w = 1; w < IM_BASE<T, U, V>::width; ++w)
+                for (w = 1; w < im.Width(); ++w)
                     im_ptr[w] = pole * im_ptr[w-1] + factor * static_cast<V>(im__ptr[w]);
             }
         }
         
         // In place conversion along columns
-        for (c = 0; c < IM_BASE<T, U, V>::nchannels; ++c) {
-            for (w = 0; w < IM_BASE<T, U, V>::width; ++w) {
-                V *im_ptr = &IM_BASE<T, U, V>::im_copy[c*IM_BASE<T, U, V>::plane_pitch+w];
-                for (h = 1; h < IM_BASE<T, U, V>::height; ++h, im_ptr += IM_BASE<T, U, V>::width_pitch)
-                    im_ptr[IM_BASE<T, U, V>::width_pitch] = pole * im_ptr[0] + factor * im_ptr[IM_BASE<T, U, V>::width_pitch];
+        for (c = 0; c < im.Channels(); ++c) {
+            for (w = 0; w < im.Width(); ++w) {
+                V *im_ptr = &storage[c*im.PlanePitch()+w];
+                for (h = 1; h < im.Height(); ++h, im_ptr += im.WidthPitch())
+                    im_ptr[im.WidthPitch()] = pole * im_ptr[0] + factor * im_ptr[im.WidthPitch()];
             }
         }
-    }
-    // Destructor
-    ~IM_SHIFT() {
-        delete [] IM_BASE<T, U, V>::im_copy;
     }
     
     // Lookup function
@@ -283,34 +287,34 @@ public:
         X -= static_cast<V>(__SHIFT_FACTOR__);
         Y -= static_cast<V>(__SHIFT_FACTOR__);
         // Check in bounds
-        if (X >= static_cast<V>(0.0) && Y >= static_cast<V>(0.0) && X <= IM_BASE<T, U, V>::dw && Y <= IM_BASE<T, U, V>::dh) {
+        if (X >= static_cast<V>(0.0) && Y >= static_cast<V>(0.0) && X <= dw && Y <= dh) {
             // Compute integer coordinates and offsets
             int y = static_cast<int>(Y);
             int x = static_cast<int>(X);
             V v = Y - y;
             V u = X - x;
             // Check for boundary cases
-            if (X == IM_BASE<T, U, V>::dw) {
+            if (X == dw) {
                 x = x > 0 ? --x : 0;
                 u = static_cast<V>(1.0);
             }
-            if (Y == IM_BASE<T, U, V>::dh) {
+            if (Y == dh) {
                 y = y > 0 ? --y : 0;
                 v = static_cast<V>(1.0);
             }
             // Compute the linear index
-            int k = x + y * IM_BASE<T, U, V>::width_pitch;
+            int k = x + y * im.WidthPitch();
             // For each image channel...
-            for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, k += IM_BASE<T, U, V>::plane_pitch) {
+            for (int c = 0; c < im.Channels(); ++c, B += out_pitch, k += im.PlanePitch()) {
                 // Do the interpolation
-                V out = IM_BASE<T, U, V>::im_copy[k] + (IM_BASE<T, U, V>::im_copy[k+1] - IM_BASE<T, U, V>::im_copy[k]) * u;
-                out += ((IM_BASE<T, U, V>::im_copy[k+IM_BASE<T, U, V>::width_pitch] - out) + (IM_BASE<T, U, V>::im_copy[k+IM_BASE<T, U, V>::width_pitch+1] - IM_BASE<T, U, V>::im_copy[k+IM_BASE<T, U, V>::width_pitch]) * u) * v;
+                V out = im.at(k) + (im.at(k+1) - im.at(k)) * u;
+                out += ((im.at(k+im.WidthPitch()) - out) + (im.at(k+im.WidthPitch()+1) - im.at(k+im.WidthPitch())) * u) * v;
                 *B = saturate_cast<U, V>(out);
             }
 		} else {
 			// Out of bounds
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch)
-				*B = IM_BASE<T, U, V>::oobv;
+			for (int c = 0; c < im.Channels(); ++c, B += out_pitch)
+				*B = im.OOBV();
 		}
     }
     
@@ -319,30 +323,30 @@ public:
         // Do the shift
         X -= static_cast<V>(__SHIFT_FACTOR__);
         Y -= static_cast<V>(__SHIFT_FACTOR__);
-        if (X >= static_cast<V>(0.0) && Y >= static_cast<V>(0.0) && X <= IM_BASE<T, U, V>::dw && Y <= IM_BASE<T, U, V>::dh) {
+        if (X >= static_cast<V>(0.0) && Y >= static_cast<V>(0.0) && X <= dw && Y <= dh) {
             // Compute integer coordinates and offsets
             int y = static_cast<int>(Y);
             int x = static_cast<int>(X);
             V v = Y - y;
             V u = X - x;
             // Check for boundary cases
-            if (X == IM_BASE<T, U, V>::dw) {
+            if (X == dw) {
                 x = x > 0 ? --x : 0;
                 u = static_cast<V>(1.0);
             }
-            if (Y == IM_BASE<T, U, V>::dh) {
+            if (Y == dh) {
                 y = y > 0 ? --y : 0;
                 v = static_cast<V>(1.0);
             }
             // Compute the linear index
-            int k = x + y * IM_BASE<T, U, V>::width_pitch;
+            int k = x + y * im.WidthPitch();
             // For each image channel...
-            for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch, k += IM_BASE<T, U, V>::plane_pitch) {
+            for (int c = 0; c < im.Channels(); ++c, B += out_pitch, G += grad_pitch, k += im.PlanePitch()) {
                 // Sample the image
-                V v00 = IM_BASE<T, U, V>::im_copy[k];
-                V v10 = IM_BASE<T, U, V>::im_copy[k+1];
-                V v01 = IM_BASE<T, U, V>::im_copy[k+IM_BASE<T, U, V>::width_pitch];
-                V v11 = IM_BASE<T, U, V>::im_copy[k+IM_BASE<T, U, V>::width_pitch+1];
+                V v00 = im.at(k);
+                V v10 = im.at(k+1);
+                V v01 = im.at(k+im.WidthPitch());
+                V v11 = im.at(k+im.WidthPitch()+1);
                 // Linearly interpolate
                 V d0 = v10 - v00;
                 V d1 = v11 - v01;
@@ -356,13 +360,22 @@ public:
             }
 		} else {
 			// Out of bounds
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch) {
-                *B = IM_BASE<T, U, V>::oobv;
+			for (int c = 0; c < im.Channels(); ++c, B += out_pitch, G += grad_pitch) {
+                *B = im.OOBV();
                 G[0] = static_cast<U>(0);
                 G[1] = static_cast<U>(0);
             }
 		}
     }
+    
+    inline int Channels() const { return im.Channels(); }
+    inline void SetOOBV(U oobv) { im.SetOOBV(oobv); }
+
+private:
+	std::vector<V> storage;
+	IM_BASE<V, U, V> im;
+	const V dw;
+	const V dh;
 };
 
 // N TAP FILTERS
@@ -387,29 +400,21 @@ struct magic { // Magic kernel (3 tap) - described here: http://johncostella.web
     template <typename V> std::pair<V, V> operator[](V x) { return (std::abs(x) <= static_cast<V>(0.5)) ? std::make_pair<V, V>(static_cast<V>(0.75) - (x * x), static_cast<V>(-2.0) * x) : std::make_pair<V, V>(static_cast<V>(0.5) * (x * x - static_cast<V>(3) * std::abs(x) + static_cast<V>(2.25)), x + (x < static_cast<V>(0) ? static_cast<V>(1.5) : -static_cast<V>(1.5))); } // Derivative
 };
 
-template<class T, class U, class V, int N, typename filter> class IM_NTAP : public IM_BASE<T, U, V>
+template<class T, class U, class V, int N, typename filter> class IM_NTAP
 {
 public:
     // Constructor
-    IM_NTAP(const T *im_, U o, int w, int h, int c=1, int wp=0, int pp=0) {
-        IM_BASE<T, U, V>::im = im_;
-        IM_BASE<T, U, V>::oobv = o;
-        IM_BASE<T, U, V>::width = w;
-        IM_BASE<T, U, V>::dw = static_cast<V>(w) - static_cast<V>(1.0);
-        IM_BASE<T, U, V>::height = h;
-        IM_BASE<T, U, V>::dh = static_cast<V>(h) - static_cast<V>(1.0);
-        IM_BASE<T, U, V>::nchannels = c;
-        IM_BASE<T, U, V>::width_pitch = wp == 0 ? IM_BASE<T, U, V>::width : wp;
-        IM_BASE<T, U, V>::plane_pitch = pp == 0 ? IM_BASE<T, U, V>::width_pitch * IM_BASE<T, U, V>::height : pp;
-    }
+    IM_NTAP(const T *im_, U o, int w, int h, int c=1, int wp=0, int pp=0) :
+		im(im_, o, w, h, c, wp, pp),
+		dw(static_cast<V>(w) - static_cast<V>(1.0)),
+		dh(static_cast<V>(h) - static_cast<V>(1.0)) {}
     
     // Lookup function
     inline void lookup(U *B, const V X, const V Y, const int out_pitch=1) {
-        if (X >= static_cast<V>(0.0) && X <= IM_BASE<T, U, V>::dw && Y >= static_cast<V>(0.0) && Y <= IM_BASE<T, U, V>::dh) {
+        if (X >= static_cast<V>(0.0) && X <= dw && Y >= static_cast<V>(0.0) && Y <= dh) {
             // N tap interpolation
             // Compute the filter values and lookup indices
             V xf[N], yf[N], x_val, y_val;
-            const T* im_;
             int ind[N][N];
 			int x = static_cast<int>(X);
 			int y = static_cast<int>(Y);
@@ -419,35 +424,33 @@ public:
                 xf[c] = f(X - static_cast<V>(x + c - (N - 1) / 2));
                 yf[c] = f(Y - static_cast<V>(y + c - (N - 1) / 2));
                 for (d = 0; d < N; ++d)
-                    ind[c][d] = IM_BASE<T, U, V>::ind_symmetric(x + d - (N - 1) / 2, y + c - (N - 1) / 2);
+                    ind[c][d] = im.ind_symmetric(x + d - (N - 1) / 2, y + c - (N - 1) / 2);
             }
             // Sample the image
-            im_ = IM_BASE<T, U, V>::im;
-			for (c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, im_ += IM_BASE<T, U, V>::plane_pitch) {
+			for (c = 0; c < im.Channels(); ++c, B += out_pitch) {
 				y_val = static_cast<V>(0);
                 for (int y = 0; y < N; ++y) {
                     x_val = static_cast<V>(0);
                     for (int x = 0; x < N; ++x)
-                        x_val += static_cast<V>(im_[ind[y][x]] * xf[x]);
+                        x_val += im.at(ind[y][x] + c * im.PlanePitch()) * xf[x];
 					y_val += yf[y] * x_val;
                 }
 				*B = saturate_cast<U, V>(y_val);
 			}
 		} else {
 			// Out of bounds
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch)
-				*B = IM_BASE<T, U, V>::oobv;
+			for (int c = 0; c < im.Channels(); ++c, B += out_pitch)
+				*B = im.OOBV();
 		}
     }
     
     // Lookup value and gradient function
     inline void lookup_grad(U *B, U *G, const V X, const V Y, const int out_pitch=1, const int grad_pitch=2) {
-        if (X >= static_cast<V>(0.0) && Y >= static_cast<V>(0.0) && X <= IM_BASE<T, U, V>::dw && Y <= IM_BASE<T, U, V>::dh) {
+        if (X >= static_cast<V>(0.0) && Y >= static_cast<V>(0.0) && X <= dw && Y <= dh) {
             // N tap interpolation
             // Compute the filter values and lookup indices
             std::pair<V, V> xf[N], yf[N];
             V x_val, y_val, im_val, x_deriv_, x_deriv, y_deriv;
-            const T* im_;
             int ind[N][N];
 			int x = static_cast<int>(X);
 			int y = static_cast<int>(Y);
@@ -457,11 +460,10 @@ public:
                 xf[c] = f[X - static_cast<V>(x + c - (N - 1) / 2)];
                 yf[c] = f[Y - static_cast<V>(y + c - (N - 1) / 2)];
                 for (d = 0; d < N; ++d)
-                    ind[c][d] = IM_BASE<T, U, V>::ind_symmetric(x + d - (N - 1) / 2, y + c - (N - 1) / 2);
+                    ind[c][d] = im.ind_symmetric(x + d - (N - 1) / 2, y + c - (N - 1) / 2);
             }
             // Sample the image
-            im_ = IM_BASE<T, U, V>::im;
-			for (c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch, im_ += IM_BASE<T, U, V>::plane_pitch) {
+			for (c = 0; c < im.Channels(); ++c, B += out_pitch, G += grad_pitch) {
 				y_val = static_cast<V>(0);
                 x_deriv = static_cast<V>(0);
                 y_deriv = static_cast<V>(0);
@@ -469,7 +471,7 @@ public:
                     x_val = static_cast<V>(0);
                     x_deriv_ = static_cast<V>(0);
                     for (int x = 0; x < N; ++x) {
-                        im_val = static_cast<V>(im_[ind[y][x]]);
+                        im_val = im.at(ind[y][x] + c * im.PlanePitch());
                         x_val += im_val * xf[x].first;
                         x_deriv_ += im_val * xf[x].second;
                     }
@@ -483,34 +485,32 @@ public:
 			}
 		} else {
 			// Out of bounds
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, G += grad_pitch) {
-                *B = IM_BASE<T, U, V>::oobv;
+			for (int c = 0; c < im.Channels(); ++c, B += out_pitch, G += grad_pitch) {
+                *B = im.OOBV();
                 G[0] = static_cast<U>(0);
                 G[1] = static_cast<U>(0);
             }
 		}
-    }  
+    }
+
+private:
+	const IM_BASE<T, U, V> im;
+	const V dw;
+	const V dh;
 };
 
-template<class T, class U, class V> class IM_CUB : public IM_BASE<T, U, V>
+template<class T, class U, class V> class IM_CUB
 {
 public:
     // Constructor
-    IM_CUB(const T *im_, U o, int w, int h, int c=1, int wp=0, int pp=0) {
-        IM_BASE<T, U, V>::im = im_;
-        IM_BASE<T, U, V>::oobv = o;
-        IM_BASE<T, U, V>::width = w;
-        IM_BASE<T, U, V>::dw = static_cast<V>(w) - static_cast<V>(2.0);
-        IM_BASE<T, U, V>::height = h;
-        IM_BASE<T, U, V>::dh = static_cast<V>(h) - static_cast<V>(2.0);
-        IM_BASE<T, U, V>::nchannels = c;
-        IM_BASE<T, U, V>::width_pitch = wp == 0 ? IM_BASE<T, U, V>::width : wp;
-        IM_BASE<T, U, V>::plane_pitch = pp == 0 ? IM_BASE<T, U, V>::width_pitch * IM_BASE<T, U, V>::height : pp;
-    }
+    IM_CUB(const T *im_, U o, int w, int h, int c=1, int wp=0, int pp=0) :
+		im(im_, o, w, h, c, wp, pp),
+		dw(static_cast<V>(w) - static_cast<V>(2.0)),
+		dh(static_cast<V>(h) - static_cast<V>(2.0)) {}
     
     // Lookup function
     inline void lookup(U *B, const V X, const V Y, const int out_pitch=1) {
-        if (X >= static_cast<V>(2.0) && X < IM_BASE<T, U, V>::dw && Y >= static_cast<V>(2.0) && Y < IM_BASE<T, U, V>::dh) {
+        if (X >= static_cast<V>(2.0) && X < dw && Y >= static_cast<V>(2.0) && Y < dh) {
             // Bicubicly interpolate
             V b[4], d[4], u[3], v[3];
 			int x = static_cast<int>(X);
@@ -521,14 +521,14 @@ public:
 			v[1] = v[0] * v[0];
 			u[2] = u[1] * u[0];
 			v[2] = v[1] * v[0];
-			int k = x - 1 + (y - 1) * IM_BASE<T, U, V>::width_pitch;
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch, k += IM_BASE<T, U, V>::plane_pitch) {
+			int k = x - 1 + (y - 1) * im.WidthPitch();
+			for (int c = 0; c < im.Channels(); ++c, B += out_pitch, k += im.PlanePitch()) {
 				V a;
-                for (int m = 0, n = k; m < 4; ++m, n += IM_BASE<T, U, V>::width_pitch) {
-					d[0] = static_cast<V>(IM_BASE<T, U, V>::im[n+0]);
-					d[1] = static_cast<V>(IM_BASE<T, U, V>::im[n+1]);
-					d[2] = static_cast<V>(IM_BASE<T, U, V>::im[n+2]);
-					d[3] = static_cast<V>(IM_BASE<T, U, V>::im[n+3]);
+                for (int m = 0, n = k; m < 4; ++m, n += im.WidthPitch()) {
+					d[0] = im.at(n+0);
+					d[1] = im.at(n+1);
+					d[2] = im.at(n+2);
+					d[3] = im.at(n+3);
 					a = (d[3] + d[1]) - (d[2] + d[0]);
 					b[m] = u[2] * a + u[1] * ((d[0] - d[1]) - a) + u[0] * (d[2] - d[0]) + d[1];
 				}
@@ -537,12 +537,17 @@ public:
 			}
 		} else {
 			// Out of bounds
-			for (int c = 0; c < IM_BASE<T, U, V>::nchannels; ++c, B += out_pitch)
-				*B = IM_BASE<T, U, V>::oobv;
+			for (int c = 0; c < im.Channels(); ++c, B += out_pitch)
+				*B = im.OOBV();
 		}
     }
     
     inline void lookup_grad(U *B, U *G, const V X, const V Y, const int out_pitch=1, const int grad_pitch=2) {}
+
+private:
+	const IM_BASE<T, U, V> im;
+	const V dw;
+	const V dh;
 };
 
 #endif

@@ -38,7 +38,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         const uint8_t *im = (const uint8_t *)mxGetData(prhs[0]);
         // Get the number of channels
         int ndims = mxGetNumberOfDimensions(prhs[0]);
-        const int *dims = mxGetDimensions(prhs[0]);
+        const mwSize* dims = mxGetDimensions(prhs[0]);
         int nchannels = 1;
         for (int i = 2; i < ndims; ++i)
             nchannels *= dims[i];
