@@ -24,11 +24,11 @@ template<class Method, class U, class V> static inline void wrapper_func4(U *B, 
     if (G == NULL) {
 #pragma omp parallel for if (num_points > 1000) num_threads(2) default(shared) private(i)
         for (i = 0; i < num_points; ++i)
-            im.lookup(&B[i], Y[i]-1.0, X[i]-1.0, num_points); // Do the interpolation
+            im.lookup(&B[i], Y[i]-static_cast<V>(1.0), X[i]-static_cast<V>(1.0), num_points); // Do the interpolation
     } else {
 #pragma omp parallel for if (num_points > 1000) num_threads(2) default(shared) private(i)
         for (i = 0; i < num_points; ++i)
-            im.lookup_grad(&B[i], &G[i*2], Y[i]-1.0, X[i]-1.0, num_points, num_points*2); // Do the interpolation
+            im.lookup_grad(&B[i], &G[i*2], Y[i]-static_cast<V>(1.0), X[i]-static_cast<V>(1.0), num_points, num_points*2); // Do the interpolation
     } 
 	return;
 }
@@ -155,10 +155,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	}
 
 	// Get and check array dimensions
-	int num_points = mxGetNumberOfElements(prhs[1]);
-	if (num_points != mxGetNumberOfElements(prhs[2]))
+	int num_points = static_cast<int>(mxGetNumberOfElements(prhs[1]));
+	if (num_points != static_cast<int>(mxGetNumberOfElements(prhs[2])))
 		mexErrMsgTxt("X and Y must have the same dimensions");
-	int ndims = mxGetNumberOfDimensions(prhs[0]);
+	int ndims = static_cast<int>(mxGetNumberOfDimensions(prhs[0]));
 	std::vector<size_t> out_dims(ndims+1);
     out_dims[0] = 2;
 	out_dims[1] = mxGetM(prhs[1]);
@@ -168,7 +168,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	int nchannels = 1;
 	for (int i = 2; i < ndims; ++i) {
 		out_dims[i+1] = dims[i];
-		nchannels *= dims[i];
+		nchannels *= static_cast<int>(dims[i]);
 	}
 	
 	// Get the out of bounds value (oobv) and set the output class to the same class as the oobv.
@@ -212,27 +212,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     const void *A = mxGetData(prhs[0]);
     
 	// Call the first wrapper function according to the input image type
+    const int width = static_cast<int>(dims[1]);
+    const int height = static_cast<int>(dims[0]);
 	switch (mxGetClassID(prhs[0])) {
 		case mxDOUBLE_CLASS:
-			wrapper_func(B, G, (const double *)A, prhs, num_points, dims[1], dims[0], nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const double *)A, prhs, num_points, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		case mxSINGLE_CLASS:
-			wrapper_func(B, G, (const float *)A, prhs, num_points, dims[1], dims[0], nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const float *)A, prhs, num_points, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		case mxINT8_CLASS:
-			wrapper_func(B, G, (const int8_t *)A, prhs, num_points, dims[1], dims[0], nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const int8_t *)A, prhs, num_points, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		case mxUINT8_CLASS:
-			wrapper_func(B, G, (const uint8_t *)A, prhs, num_points, dims[1], dims[0], nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const uint8_t *)A, prhs, num_points, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		case mxINT16_CLASS:
-			wrapper_func(B, G, (const int16_t *)A, prhs, num_points, dims[1], dims[0], nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const int16_t *)A, prhs, num_points, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		case mxUINT16_CLASS:
-			wrapper_func(B, G, (const uint16_t *)A, prhs, num_points, dims[1], dims[0], nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const uint16_t *)A, prhs, num_points, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		case mxLOGICAL_CLASS:
-			wrapper_func(B, G, (const mxLogical *)A, prhs, num_points, dims[1], dims[0], nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const mxLogical *)A, prhs, num_points, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		default:
 			mexErrMsgTxt("A is of an unsupported type");
