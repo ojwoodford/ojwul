@@ -23,9 +23,9 @@ function [X, score] = extract_features(score, radius, thresh, subpixel)
 if nargin < 4
     subpixel = true;
     if nargin < 3
-        radius = 1.5;
+        thresh = -0.5;
         if nargin < 2
-            thresh = -0.5;
+            radius = 1.5;
         end
     end
 end

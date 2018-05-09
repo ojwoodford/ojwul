@@ -27,7 +27,7 @@ for v = varargin(:)'
 end
 
 % Compute the image gradient
-[Ix, Iy] = imgrad(I, 0);
+[Ix, Iy] = imgrad(I, 'Sobel');
 
 % Compute 1D Gaussian filter from sigma
 g = max(floor((5 / 2) * sigma), 1);
