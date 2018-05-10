@@ -32,3 +32,4 @@ xrepmat.m
 *.deps
 *.unsuccessfulbuild
 *.float32
+/build
