@@ -159,7 +159,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	if (num_points != static_cast<int>(mxGetNumberOfElements(prhs[2])))
 		mexErrMsgTxt("X and Y must have the same dimensions");
 	int ndims = static_cast<int>(mxGetNumberOfDimensions(prhs[0]));
-	std::vector<size_t> out_dims(ndims+1);
+	std::vector<size_t> out_dims(ndims+2);
     out_dims[0] = 2;
 	out_dims[1] = mxGetM(prhs[1]);
 	out_dims[2] = mxGetN(prhs[1]);
