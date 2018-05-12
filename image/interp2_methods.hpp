@@ -382,17 +382,18 @@ private:
 #define __PI__ 3.14159265358979323846264338327950288
 template <int N>
 struct lanczos { // N tap - described here: https://en.wikipedia.org/wiki/Lanczos_resampling
-    template <typename V> V               operator()(V x) { if (x == static_cast<V>(0)) return static_cast<V>(1.0); x *= static_cast<V>(__PI__); return sin(x) * sin(x / (N-1)) * (N-1) / (x*x); }
+    static constexpr int a = N / 2;
+    template <typename V> V               operator()(V x) { if (x == static_cast<V>(0)) return static_cast<V>(1.0); x *= static_cast<V>(__PI__); return sin(x) * sin(x / a) * a / (x*x); }
     template <typename V> std::pair<V, V> operator[](V x) { // Derivative
         if (x == static_cast<V>(0))
             return std::make_pair<V, V>(static_cast<V>(1.0), static_cast<V>(0.0));
         V px = x * static_cast<V>(__PI__);
         V spx = sin(px);
         V cpx = cos(px);
-        V pxa = x / (N - 1);
+        V pxa = x / a;
         V spxa = sin(pxa);
         V cpxa = cos(pxa);
-        return std::make_pair<V, V>(spx * spxa * (N-1) / (px * px), (spx * cpxa + (N - 1) * cpx * spxa - 2 * (N - 1) * spx * spxa / px) / (px * x)); 
+        return std::make_pair<V, V>(spx * spxa * a / (px * px), (spx * cpxa + a * cpx * spxa - 2 * a * spx * spxa / px) / (px * x)); 
     }
 };
 struct magic { // Magic kernel (3 tap) - described here: http://johncostella.webs.com/magic/
@@ -403,6 +404,7 @@ struct magic { // Magic kernel (3 tap) - described here: http://johncostella.web
 template<class T, class U, class V, int N, typename filter> class IM_NTAP
 {
 public:
+    static constexpr int offset = (N - 1) / 2;
     // Constructor
     IM_NTAP(const T *im_, U o, int w, int h, int c=1, int wp=0, int pp=0) :
 		im(im_, o, w, h, c, wp, pp),
@@ -421,10 +423,10 @@ public:
             int c, d;
             filter f;
             for (c = 0; c < N; ++c) {
-                xf[c] = f(X - static_cast<V>(x + c - (N - 1) / 2));
-                yf[c] = f(Y - static_cast<V>(y + c - (N - 1) / 2));
+                xf[c] = f(X - static_cast<V>(x + c - offset));
+                yf[c] = f(Y - static_cast<V>(y + c - offset));
                 for (d = 0; d < N; ++d)
-                    ind[c][d] = im.ind_symmetric(x + d - (N - 1) / 2, y + c - (N - 1) / 2);
+                    ind[c][d] = im.ind_symmetric(x + d - offset, y + c - offset);
             }
             // Sample the image
 			for (c = 0; c < im.Channels(); ++c, B += out_pitch) {
@@ -457,10 +459,10 @@ public:
             int c, d;
             filter f;
             for (c = 0; c < N; ++c) {
-                xf[c] = f[X - static_cast<V>(x + c - (N - 1) / 2)];
-                yf[c] = f[Y - static_cast<V>(y + c - (N - 1) / 2)];
+                xf[c] = f[X - static_cast<V>(x + c - offset)];
+                yf[c] = f[Y - static_cast<V>(y + c - offset)];
                 for (d = 0; d < N; ++d)
-                    ind[c][d] = im.ind_symmetric(x + d - (N - 1) / 2, y + c - (N - 1) / 2);
+                    ind[c][d] = im.ind_symmetric(x + d - offset, y + c - offset);
             }
             // Sample the image
 			for (c = 0; c < im.Channels(); ++c, B += out_pitch, G += grad_pitch) {

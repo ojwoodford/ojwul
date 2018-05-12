@@ -61,15 +61,15 @@ template<class T, class U, class V> static inline void wrapper_func3(U *B, U *G,
 			wrapper_func4(B, G, im, X, Y, num_points);
             break;
         }
-        case '3':
+        case '4':
         {
-            IM_NTAP<T,U,V,3,lanczos<3>> im(A, oobv, h, w, col);
+            IM_NTAP<T,U,V,4,lanczos<4>> im(A, oobv, h, w, col);
 			wrapper_func4(B, G, im, X, Y, num_points);
             break;
         }
-        case '5':
+        case '6':
         {
-            IM_NTAP<T,U,V,5,lanczos<5>> im(A, oobv, h, w, col);
+            IM_NTAP<T,U,V,6,lanczos<6>> im(A, oobv, h, w, col);
 			wrapper_func4(B, G, im, X, Y, num_points);
             break;
         }
