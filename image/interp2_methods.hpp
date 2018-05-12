@@ -68,14 +68,12 @@ private:
 template <typename U, typename T>
 static inline U saturate_cast(T val)
 {
-    U out = static_cast<U>(val);
     if (std::numeric_limits<U>::is_integer && !std::numeric_limits<T>::is_integer) {
-        if (std::numeric_limits<U>::is_signed)
-            return out > static_cast<U>(0) ? (out > std::numeric_limits<U>::max() ? std::numeric_limits<U>::max() : out + static_cast<U>(0.5)) : (out < std::numeric_limits<U>::min() ? std::numeric_limits<U>::min() : out - static_cast<U>(0.5));
-        else
-            return out > static_cast<U>(0) ? (out > std::numeric_limits<U>::max() ? std::numeric_limits<U>::max() : out + static_cast<U>(0.5)) : static_cast<U>(0);
+        val += (val > static_cast<T>(0)) ? static_cast<T>(0.5) : -static_cast<T>(0.5);
+        val = std::min(val, static_cast<T>(std::numeric_limits<U>::max()));
+        val = std::max(val, static_cast<T>(std::numeric_limits<U>::min()));
     }
-    return out;
+    return static_cast<U>(val);
 }
 
 template<class T, class U, class V> class IM_NEAR
