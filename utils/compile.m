@@ -84,7 +84,7 @@ for a = find(~M(:))'
     if ~any(s)
         error('Function %s not found on the path', varargin{a});
     end
-    s = [S{s}(1:end-2) '.' mexext];
+    s = [S{find(s, 1)}(1:end-2) '.' mexext];
     if exist(s, 'file')
         delete(s);
         assert(exist(s, 'file') == 0, 'Could not delete the mex file:\n   %s\nEither it is write protected or it is locked in use by MATLAB.', s);
