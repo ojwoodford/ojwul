@@ -17,7 +17,7 @@ if nargin < 2
 end
 
 % Subtract the mean
-mu = mean(X, 1);
+mu = mean(X, 2);
 X = bsxfun(@minus, X, mu);
 
 % Whitening the covariance
