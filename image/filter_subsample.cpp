@@ -65,18 +65,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 static inline int sp(int x, int w) { w--; return abs(((x + (w * 9)) % (2 * w)) - w); } // Macro for symmetric padding
 
 // Function for correct rounding
-// Add these to use numeric_limits class
 #include <limits>
-using namespace std;
-template<class U, class T> static inline U saturate_cast(T val)
+#include <algorithm>
+template <typename U, typename T>
+static inline U saturate_cast(T val)
 {
-	if (numeric_limits<U>::is_integer && !numeric_limits<T>::is_integer) {
-		if (numeric_limits<U>::is_signed)
-			return val > 0 ? (val > (T)numeric_limits<U>::max() ? numeric_limits<U>::max() : static_cast<U>(val + 0.5)) : (val < (T)numeric_limits<U>::min() ? numeric_limits<U>::min() : static_cast<U>(val - 0.5));
-		else
-			return val > 0 ? (val > (T)numeric_limits<U>::max() ? numeric_limits<U>::max() : static_cast<U>(val + 0.5)) : 0;
-	}
-	return static_cast<U>(val);
+    if (std::numeric_limits<U>::is_integer && !std::numeric_limits<T>::is_integer) {
+        val += (val > static_cast<T>(0)) ? static_cast<T>(0.5) : -static_cast<T>(0.5);
+        val = std::min(val, static_cast<T>(std::numeric_limits<U>::max()));
+        val = std::max(val, static_cast<T>(std::numeric_limits<U>::min()));
+    }
+    return static_cast<U>(val);
 }
 
 template<class T, class U> static inline void filter_subsample(const mxArray *prhs[], mxArray *plhs[], mxClassID in_class)
