@@ -83,7 +83,7 @@ if isstruct(varargin{1})
        varargin = {varargin{2:end}};
     end
 else
-    model = localGetDefaultModel;
+    model = localGetDefaultModel();
 end
 
 if length(varargin)>1
@@ -109,13 +109,13 @@ if length(varargin)>1
 end
 
 if isempty(model.parent)
-    model.parent = gca;
+    model.parent = gca();
 end
 
 [model] = local_draw(model);
 
 %------------------------------------------%
-function [model] = localGetDefaultModel
+function [model] = localGetDefaultModel()
 
 model.cdata = [];
 model.alpha = [];
