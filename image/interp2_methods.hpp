@@ -3,6 +3,7 @@
 #include <limits> // For std::numeric_limits
 #include <utility> // For std::pair
 #include <cstdlib> // For std::abs
+#include <algorithm> // For std::min and std::max
 #include <vector>
 
 // These methods all use the following conventions:
