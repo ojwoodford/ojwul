@@ -1,13 +1,16 @@
 %TEMP_CD Switch to a directory for the duration of the calling function
 %
-%   temp_cd(dirname)
+%   cwd = temp_cd(dirname)
 %
 %IN:
 %   dirname - Full or relative path to the directory to switch to.
+%
+%OUT:
+%   cwd - Path string to current directory.
 
-function temp_cd(dirname)
-[~, cleanupObj] = fileparts(tempname());
+function cwd = temp_cd(dirname)
+assert(evalin('caller', 'exist(''temp_cd_cleanupObj'', ''var'');') == 0, 'temp_cd cannot be called twice in the same function');
 cwd = cd(dirname);
 co = onCleanup(@() cd(cwd));
-assignin('caller', cleanupObj, co);
+assignin('caller', 'temp_cd_cleanupObj', co);
 end
