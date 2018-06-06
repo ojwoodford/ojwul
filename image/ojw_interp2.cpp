@@ -13,7 +13,7 @@
 // Define types
 #include <stdint.h>
 
-#if _MATLAB_ < 805 // R2015a
+#if defined(_MATLAB_) && _MATLAB_ < 805 // R2015a
 extern "C" mxArray *mxCreateUninitNumericArray(mwSize ndim, const size_t *dims, mxClassID classid, mxComplexity ComplexFlag);
 #endif
 
