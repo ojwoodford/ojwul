@@ -26,13 +26,13 @@ end
 if ismatrix(a) && ismatrix(b) && nargin < 3
    if min(size(a)) == 1, a = a(:); end
    if min(size(b)) == 1, b = b(:); end
-end;
+end
 
 % Check dimensions
 sza = size(a);
 szb = size(b);
-sza(end+1:numel(sza)) = 1;
-szb(end+1:numel(szb)) = 1;
+sza(end+1:numel(szb)) = 1;
+szb(end+1:numel(sza)) = 1;
 if any(sza ~= szb & sza ~= 1 & szb ~= 1)
    error(message('MATLAB:dot:InputSizeMismatch'));
 end
