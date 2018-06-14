@@ -601,6 +601,7 @@ if isempty(va)
     sz2 = size(gb);
     sz = [sz2(1) sz];
     sz2(end+1:numel(sz)) = 1;
+    sz2 = max(sz2, 1);
     c = repmat(gb, sz ./ sz2);
     v = vb;
     return;
@@ -609,6 +610,7 @@ if isempty(vb)
     sz2 = size(ga);
     sz = [sz2(1) sz];
     sz2(end+1:numel(sz)) = 1;
+    sz2 = max(sz2, 1);
     c = repmat(ga, sz ./ sz2);
     v = va;
     return;
