@@ -153,7 +153,7 @@ classdef autodiff
         
         function c = sqrt(a)
             c = sqrt(a.value);
-            c = autodiff(c, a.varind, bsxfun(@times, a.deriv, shiftdim(0.5 ./ c, -1)));
+            c = autodiff(c, a.varind, bsxfun(@times, a.deriv, shiftdim(min(0.5 ./ c, 1e300), -1)));
         end
         
         function c = sin(a)
@@ -453,6 +453,14 @@ classdef autodiff
         
         function c = isreal(a)
             c = isreal(a.value) & isreal(a.deriv);
+        end
+        
+        function c = isnan(a)
+            c = isnan(a.value) | shiftdim(any(isnan(a.deriv)), 1);
+        end
+        
+        function c = isfinite(a)
+            c = isfinite(a.value) & shiftdim(all(isfinite(a.deriv)), 1);
         end
         
         % Other functions        
