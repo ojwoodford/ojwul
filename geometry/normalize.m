@@ -15,14 +15,8 @@
 %   Y - Normalize X.
 
 function X = normalize(X, varargin)
-normalizer = 1 ./ normd(X, varargin{:});
-if isfloat(X)
-    try
-        m = realmax(class(X));
-    catch
-        m = realmax('double');
-    end
-    normalizer = min(normalizer, m);
-end
+normalizer = normd(X, varargin{:});
+M = normalizer ~= 0;
+normalizer(M) = 1 ./ normalizer(M);
 X = bsxfun(@times, X, normalizer);
 end
