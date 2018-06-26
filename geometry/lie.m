@@ -19,6 +19,11 @@ classdef lie
             n = size(this.G, 2);
         end
         
+        % SIZE - Return the size of the warp
+        function sz = size(this)
+            sz = this.sz;
+        end
+        
         % VEE - Convert from Lie matrix to Lie tangent space
         function tangent = vee(this, matrix)
             tangent = this.Gv * reshape(matrix, size(this.Gv, 2), []);
