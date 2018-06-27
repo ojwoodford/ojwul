@@ -28,6 +28,7 @@ if iscell(opts)
   opts = struct(opts{:});
 end
 
+inopts = -1;
 if isempty(varargin)
     inopts = struct([]);
 elseif nargin == 2
@@ -36,12 +37,20 @@ elseif nargin == 2
     elseif isstruct(varargin{1})
         inopts = varargin{1};
     elseif iscell(varargin{1})
-        inopts = struct(varargin{1}{:});
+        varargin = varargin{1};
+        if isstruct(varargin{1})
+            inopts = varargin{1};
+        end
     else
         error('Single argument');
     end
-else
-    inopts = struct(varargin{:});
+end
+if isequal(inopts, -1)
+    % Construct struct in for loop to allow duplicates (overwrite)
+    inopts = struct();
+    for a = 1:2:numel(varargin)-1
+        inopts.(varargin{a}) = varargin{a+1};
+    end
 end
 
 rem_opts = [];
