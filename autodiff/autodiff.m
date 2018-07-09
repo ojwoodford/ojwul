@@ -57,7 +57,12 @@ classdef autodiff
         end
         
         function disp(obj, varargin)
+            fprintf('Value:\n');
             disp(obj.value, varargin{:});
+            fprintf('Gradient:\n');
+            disp(obj.deriv, varargin{:});
+            fprintf('Gradient indices:\n');
+            disp(obj.varind, varargin{:});
         end
         
         % Elementwise operators
