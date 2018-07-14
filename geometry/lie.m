@@ -105,14 +105,17 @@ end
 
 function G = generators(group)
 switch group
+    case 'shift2'
+        % Generators for 2D translations
+        G = zeros(3, 3, 2);
+        G(1,3,1) = 1; % X translation
+        G(2,3,2) = 1; % Y translation
     case 'so2'
         % Generators for so2
         G = [0 -1; 1 0];
     case 'se2'
         % Generators for se2
-        G = zeros(3, 3, 3);
-        G(1,3,1) = 1; % X translation
-        G(2,3,2) = 1; % Y translation
+        G = generators('shift2');
         G(1:2,1:2,3) = generators('so2'); % Rotation
     case 'sim2'
         % Generators for sim2
