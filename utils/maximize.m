@@ -15,7 +15,13 @@ function maximize(hFig)
 if nargin < 1
     hFig = gcf();
 end
-drawnow % Required to avoid Java errors
+% Java-less method (since R2018a)
+if exist('verLessThan', 'file') && ~verLessThan('matlab', '9.4')
+    set(hFig, 'WindowState', 'maximized');
+    return;
+end
+% Old Java version
+drawnow(); % Required to avoid Java errors
 set(hFig, 'WindowStyle', 'normal');
 % Suppress warning about Java obsoletion
 oldState = warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
