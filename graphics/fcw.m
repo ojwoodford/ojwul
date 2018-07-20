@@ -104,12 +104,12 @@ end
 % Create the modifier checking function
 M = modifiers == 0 | modifiers == 1;
 if ~any(M)
-    modifiers = @() false;
+    modifiers = @(varargin) false;
 else
     modifiers = modifiers(M);
     mods = {'shift', 'control', 'alt'};
     mods = mods(M);
-    modifiers = @() ~isequal(ismember(mods, get(fig, 'CurrentModifier')), modifiers);
+    modifiers = @(varargin) ~isequal(ismember(mods, get(fig, 'CurrentModifier')), modifiers);
 end
 % Initialize the callbacks
 set(fig, 'WindowButtonDownFcn', [{@fcw_mousedown, {str2func(['fcw_' buttons{1}]), str2func(['fcw_' buttons{2}]), str2func(['fcw_' buttons{3}])}, modifiers} prev_mousedown], ...
