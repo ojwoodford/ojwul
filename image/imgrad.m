@@ -85,9 +85,10 @@ else
     
     % Evaluate 1D Gaussian filter (and its derivative).
     g = gauss_mask(filter, 0, X);
-    g = g / sum(g);
-    gp = normalize(-gauss_mask(filter, 1, X));
+    gp = -gauss_mask(filter, 1, X);
 end
+g = g / sum(g);
+gp = normalize(gp);
 
 % Calculate image gradients
 Ix = imfiltsep(I, g, gp);
