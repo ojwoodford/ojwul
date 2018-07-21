@@ -78,6 +78,8 @@ if ischar(filter)
         otherwise
             error('Filter %s unrecognized', filter);
     end
+    X = floor(numel(gp) * 0.5);
+    X = -X:X;
 else
     % Determine necessary filter support (for Gaussian).
     X = max(floor((5 / 2) * filter), 1);
@@ -85,10 +87,12 @@ else
     
     % Evaluate 1D Gaussian filter (and its derivative).
     g = gauss_mask(filter, 0, X);
-    gp = -gauss_mask(filter, 1, X);
+    gp = gauss_mask(filter, 1, X);
 end
+
+% Normalize the filters
 g = g / sum(g);
-gp = normalize(gp);
+gp = gp / sum(abs(gp) .* abs(X));
 
 % Calculate image gradients
 Ix = imfiltsep(I, g, gp);
