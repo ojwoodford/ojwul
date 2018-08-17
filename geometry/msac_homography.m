@@ -3,9 +3,8 @@
 % Usage:   [H, inliers] = msac_homography(x1, x2, t)
 %
 % Arguments:
-%          x1  - 2xN or 3xN set of homogeneous points.  If the data is
-%                2xN it is assumed the homogeneous scale factor is 1.
-%          x2  - 2xN or 3xN set of homogeneous points such that x1<->x2.
+%          x1  - 2xN set of points.
+%          x2  - 2xN set of homogeneous points such that x1<->x2.
 %          t   - The distance threshold between data point and the model
 %                used to decide whether a point is an inlier or not. 
 %                Note that point coordinates are normalised to that their
@@ -17,7 +16,7 @@
 % is expected that a percentage of matches will be wrong.
 %
 % Returns:
-%          H - The 3x3 homography such that x2 = Hx1.
+%          H - The 3x3 homography such that x2 = proj(H*homg(x1)).
 %          D - 1xN array of squared errors.
 %
 
@@ -26,26 +25,14 @@ if ~all(size(x1)==size(x2))
     error('Data sets x1 and x2 must have the same dimension');
 end
 
-[rows,npts] = size(x1);
-if rows~=2 && rows~=3
-    error('x1 and x2 must have 2 or 3 rows');
-end
-
-if rows == 2    % Pad data with homogeneous scale factor of 1
-    x1 = [x1; ones(1,npts)];
-    x2 = [x2; ones(1,npts)];  
-else
-    x1 = hnormalise(x1);
-    x2 = hnormalise(x2);
-end
-
 % Normalize each set of points so that the origin is at centroid and
 % mean distance from origin is sqrt(2).  normalize2dpts also ensures the
 % scale parameter is 1.
-[T, T] = normalise2dpts([x1 x2]);
-x1n = T * x1;
-x2n = T * x2;
-t = t * T(1) * T(5);
+[x1n, T1] = whiten(x1);
+x1n = homg(x1n);
+[x2n, T2] = whiten(x2);
+x2n = homg(x2n);
+t = t * T2(1) * T2(5);
 
 % x1 and x2 are 'stacked' to create a 6xN array for ransac
 [H, D, stats] = msac([x1n; x2n], @(x) homography2d(x(1:3,:), x(4:6,:)), @(H, x) homogdist2d(H, x(1:3,:), x(4:6,:)), 4, t);
@@ -70,13 +57,13 @@ for a = 1:5
 end
 
 % Denormalize
-H = T \ H * T;
+H = T2 \ H * T1;
 if nargout < 2
     return;
 end
 
 % Compute the distances
-D = homogdist2d(H, x1, x2);
+D = homogdist2d(H, homg(x1), homg(x2));
 end
 
 %----------------------------------------------------------------------
@@ -143,4 +130,8 @@ try
 catch
     tf = false;
 end
-end    
+end
+
+function x = hnormalise(x)
+x = x ./ x(end,:);
+end
