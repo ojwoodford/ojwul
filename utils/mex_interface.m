@@ -36,6 +36,12 @@ classdef mex_interface < handle
                 fprintf('Object instance of %s\n', func2str(this.mexHandle));
             end
         end
+        
+        %% Saveobj - warn this is unsaveable
+        function a = saveobj(this)
+            a = [];
+            warning('mex_interface objects are unsaveable.');
+        end
 
         %% All other methods
         function varargout = subsref(this, s)
