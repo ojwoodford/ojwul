@@ -1,6 +1,6 @@
 % MSAC_ESSENMATRIX - fits essential matrix using RANSAC
 %
-% Usage:   [F, inliers] = msac_fundmatrix(x1, x2, K, t)
+% Usage:   [F, inliers] = msac_essenmatrix(x1, x2, K, t)
 %
 % Arguments:
 %          x1  - 2xN or 3xN set of homogeneous image points.  If the data is
