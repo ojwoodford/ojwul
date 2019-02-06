@@ -46,6 +46,10 @@ classdef lie
         % EXP - Convert from Lie tangent space to transform
         function transform = exp(this, tangent)
             [~, N] = size(tangent);
+            if N == 1
+                transform = expm(this.hat(tangent));
+                return;
+            end
             transform = expm(this.hat(tangent(:,1))); % Hack for non-numeric types, e.g. autodiff
             for a = N:-1:2
                 transform(:,:,a) = expm(this.hat(tangent(:,a)));
@@ -86,8 +90,12 @@ classdef lie
         end
     end
     methods (Static)
-        function check_orthogonal()
-            groups = {'so2', 'se2', 'sim2', 'aff2', 'so3', 'rxso3', 'uv3', 'rxuv3', 'se3', 'sim3', 'sl3'};
+        function check_orthogonal(groups)
+            if nargin < 1
+                groups = {'so2', 'se2', 'sim2', 'aff2', 'so3', 'rxso3', 'uv3', 'rxuv3', 'se3', 'sim3', 'sl3'};
+            elseif ~iscell(groups)
+                groups = {groups};
+            end
             for group = groups
                 % Chech the generators are orthogonal
                 G = generators(group{1});
@@ -119,10 +127,10 @@ switch group
         G(1:2,1:2,3) = generators('so2'); % Rotation
     case 'sim2'
         % Generators for sim2
-        G = zeros(3, 3, 3);
-        G(:,:,1:3) = generators('se2');
-        G(1,1,4) = 1; % Uniform scale
-        G(2,2,4) = 1;
+        G = cat(3, generators('se2'), diag([0.5 0.5 -1])); % Uniform scale
+    case 'rs2'
+        G = generators('sim2');
+        G = G(:,:,3:4);
     case 'aff2'
         % Generators for aff2 (2D affine transformation)
         G = zeros(3, 3, 6);

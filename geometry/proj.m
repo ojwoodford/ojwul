@@ -14,5 +14,5 @@
 function X = proj(X)
 sz = size(X);
 sz(1) = sz(1) - 1;
-X = reshape(bsxfun(@times, X(1:end-1,:), 1 ./ X(end,:)), sz);
+X = reshape(X(1:end-1,:) .* (1 ./ X(end,:)), sz);
 end

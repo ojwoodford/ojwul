@@ -13,7 +13,7 @@
 // Define types
 #include <stdint.h>
 
-#if defined(_MATLAB_) && _MATLAB_ < 805 // R2015a
+#if _MATLAB_ < 805 // R2015a
 extern "C" mxArray *mxCreateUninitNumericArray(mwSize ndim, const size_t *dims, mxClassID classid, mxComplexity ComplexFlag);
 #endif
 
@@ -99,6 +99,9 @@ template<class T, class V> static inline void wrapper_func2(void *B, void *G, co
 			break;
 		case mxUINT8_CLASS:
             wrapper_func3((uint8_t *)B, (uint8_t *)G, A, X, Y, num_points, w, h, col, (const uint8_t)oobv, meth);
+			break;
+		case mxINT8_CLASS:
+            wrapper_func3((int8_t *)B, (int8_t *)G, A, X, Y, num_points, w, h, col, (const int8_t)oobv, meth);
 			break;
 		case mxINT16_CLASS:
             wrapper_func3((int16_t *)B, (int16_t *)G, A, X, Y, num_points, w, h, col, (const int16_t)oobv, meth);

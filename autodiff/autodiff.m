@@ -67,7 +67,7 @@ classdef autodiff
         
         % Elementwise operators
         function c = plus(a, b)
-            c = bsxfun(@plus, double(a), double(b));
+            c = double(a) + double(b);
             [d, v] = combine_grads(grad(a), grad(b), var_indices(a), var_indices(b), size(c), 'add');
             c = autodiff(c, v, d);
         end
@@ -86,12 +86,12 @@ classdef autodiff
             ga = [];
             gb = [];
             if isautodiff(a)
-                ga = bsxfun(@times, a.deriv, shiftdim(db, -1));
+                ga = a.deriv .* shiftdim(db, -1);
             end
             if isautodiff(b)
-                gb = bsxfun(@times, b.deriv, shiftdim(da, -1));
+                gb = b.deriv .* shiftdim(da, -1);
             end
-            c = bsxfun(@times, da, db);
+            c = da .* db;
             [d, v] = combine_grads(ga, gb, var_indices(a), var_indices(b), size(c), 'add');
             c = autodiff(c, v, d);
         end
@@ -102,14 +102,14 @@ classdef autodiff
             ga = [];
             gb = [];
             if isautodiff(a)
-                ga = bsxfun(@times, a.deriv, shiftdim(db, -1));
+                ga = a.deriv .* shiftdim(db, -1);
             end
             if isautodiff(b)
-                gb = bsxfun(@times, b.deriv, -shiftdim(da, -1));
+                gb = b.deriv .* -shiftdim(da, -1);
             end
-            c = bsxfun(@rdivide, da, db);
+            c = da ./ db;
             [d, v] = combine_grads(ga, gb, var_indices(a), var_indices(b), size(c), 'add');
-            c = autodiff(c, v, bsxfun(@times, d, shiftdim(1 ./ (db .* db), -1)));
+            c = autodiff(c, v, d .* shiftdim(1 ./ (db .* db), -1));
         end
         
         function c = ldivide(a, b)
@@ -121,12 +121,12 @@ classdef autodiff
             db = double(b);
             ga = [];
             gb = [];
-            c = bsxfun(@power, da, db);
+            c = da .^ db;
             if isautodiff(a)
-                ga = bsxfun(@times, a.deriv, shiftdim(bsxfun(@times, bsxfun(@power, da, db-1), db), -1));
+                ga = a.deriv .* shiftdim((da .^ (db-1)) .* db, -1);
             end
             if isautodiff(b)
-                gb = bsxfun(@times, b.deriv, shiftdim(bsxfun(@times, c, log(da)), -1));
+                gb = b.deriv .* shiftdim(c .* log(da), -1);
             end
             [d, v] = combine_grads(ga, gb, var_indices(a), var_indices(b), size(c), 'add');
             c = autodiff(c, v, d);
@@ -149,41 +149,41 @@ classdef autodiff
          
         function c = exp(a)
             c = exp(a.value);
-            c = autodiff(c, a.varind, bsxfun(@times, shiftdim(c, -1), a.deriv));
+            c = autodiff(c, a.varind, shiftdim(c, -1) .* a.deriv);
         end
         
         function c = log(a)
-            c = autodiff(log(a.value), a.varind, bsxfun(@times, a.deriv, 1 ./ shiftdim(a.value, -1)));
+            c = autodiff(log(a.value), a.varind, a.deriv .* (1 ./ shiftdim(a.value, -1)));
         end
         
         function c = sqrt(a)
             c = sqrt(a.value);
-            c = autodiff(c, a.varind, bsxfun(@times, a.deriv, shiftdim(min(0.5 ./ c, 1e300), -1)));
+            c = autodiff(c, a.varind, a.deriv .* shiftdim(min(0.5 ./ c, 1e300), -1));
         end
         
         function c = sin(a)
-            c = autodiff(sin(a.value), a.varind, bsxfun(@times, a.deriv, shiftdim(cos(a.value), -1)));
+            c = autodiff(sin(a.value), a.varind, a.deriv .* shiftdim(cos(a.value), -1));
         end
         
         function c = cos(a)
-            c = autodiff(cos(a.value), a.varind, bsxfun(@times, a.deriv, shiftdim(-sin(a.value), -1)));
+            c = autodiff(cos(a.value), a.varind, a.deriv .* shiftdim(-sin(a.value), -1));
         end
         
         function c = tan(a)
             c = sec(a.value);
-            c = autodiff(tan(a.value), a.varind, bsxfun(@times, a.deriv, shiftdim(c .* c, -1)));
+            c = autodiff(tan(a.value), a.varind, a.deriv .* shiftdim(c .* c, -1));
         end
         
         function c = asin(a)
-            c = autodiff(asin(a.value), a.varind, bsxfun(@times, a.deriv, shiftdim(1 ./ sqrt(1 - a.value .* a.value), -1)));
+            c = autodiff(asin(a.value), a.varind, a.deriv .* shiftdim(1 ./ sqrt(1 - a.value .* a.value), -1));
         end
         
         function c = acos(a)
-            c = autodiff(acos(a.value), a.varind, bsxfun(@times, a.deriv, shiftdim(-1 ./ sqrt(1 - a.value .* a.value), -1)));
+            c = autodiff(acos(a.value), a.varind, a.deriv .* shiftdim(-1 ./ sqrt(1 - a.value .* a.value), -1));
         end
         
         function c = atan(a)
-            c = autodiff(atan(a.value), a.varind, bsxfun(@times, a.deriv, shiftdim(1 ./ (1 + a.value .* a.value), -1)));
+            c = autodiff(atan(a.value), a.varind, a.deriv .* shiftdim(1 ./ (1 + a.value .* a.value), -1));
         end
         
         % Matrix operators
@@ -198,12 +198,12 @@ classdef autodiff
             v = unique([var_indices(a) var_indices(b)]);
             sz = [numel(v) size(c)];
             if isautodiff(a)
-                g = reshape(sum(bsxfun(@times, grad(a, v), shiftdim(db, -2)), 3), sz);
+                g = reshape(reshape(grad(a, v), [], size(da, 2)) * db, sz);
             else
                 g = 0;
             end
             if isautodiff(b)
-                g = g + reshape(sum(bsxfun(@times, shiftdim(da, -1), permute(grad(b, v), [1 4 2 3])), 3), sz);
+                g = g + reshape(sum(shiftdim(da, -1) .* permute(grad(b, v), [1 4 2 3]), 3), sz);
             end
             c = autodiff(c, v, g);
         end
@@ -227,9 +227,9 @@ classdef autodiff
         function c = inv(a)
             c = inv(a.value);
             sz = [size(a.deriv) 1];
-            d = bsxfun(@times, -shiftdim(c, -1), reshape(a.deriv, sz([1 end 2:end-1])));
+            d = -shiftdim(c, -1) .* reshape(a.deriv, sz([1 end 2:end-1]));
             d = reshape(sum(d, 3), sz);
-            d = bsxfun(@times, d, shiftdim(c, -2));
+            d = d .* shiftdim(c, -2);
             d = reshape(sum(d, 3), sz);
             c = autodiff(c, a.varind, d);
         end
@@ -237,14 +237,14 @@ classdef autodiff
         function c = expm(a)
             c = expm(a.value);
             sz = [size(a.deriv) 1];
-            d = bsxfun(@times, shiftdim(c, -1), reshape(a.deriv, sz([1 end 2:end-1])));
+            d = shiftdim(c, -1) .* reshape(a.deriv, sz([1 end 2:end-1]));
             d = reshape(sum(d, 3), sz);
             c = autodiff(c, a.varind, d);
         end
         
         function c = logm(a)
             sz = [size(a.deriv) 1];
-            d = bsxfun(@times, shiftdim(inv(a.value), -1), reshape(a.deriv, sz([1 end 2:end-1])));
+            d = shiftdim(inv(a.value), -1) .* reshape(a.deriv, sz([1 end 2:end-1]));
             d = reshape(sum(d, 3), sz);
             c = autodiff(logm(a.value), a.varind, d);
         end
@@ -264,7 +264,7 @@ classdef autodiff
             end
             c = a.value;
             c(c==0) = 1e-154;
-            c = autodiff(prod(a.value, dim), a.varind, sum(bsxfun(@times, a.deriv, shiftdim(bsxfun(@times, prod(c, dim), 1 ./ c), -1)), dim+1));
+            c = autodiff(prod(a.value, dim), a.varind, sum(a.deriv .* shiftdim(prod(c, dim) .* (1 ./ c)), -1), dim+1);
         end
         
         function c = select(a, b, M)
@@ -468,9 +468,9 @@ classdef autodiff
             c = isfinite(a.value) & shiftdim(all(isfinite(a.deriv)), 1);
         end
         
-        % Other functions        
+        % Other functions
         function c = ojw_interp2(I, x, y, interp_mode, oobv)
-            if nargin < 5
+            if nargin < 4
                 interp_mode = 'l';
             end
             if nargin < 5
@@ -479,7 +479,7 @@ classdef autodiff
             assert(lower(interp_mode(1)) ~= 'c', 'Cubic interpolation not supported');
             if isautodiff(x) && isautodiff(y) && ~isautodiff(I)
                 [c, d] = ojw_interp2(I, x.value, y.value, interp_mode, oobv);
-                c = autodiff(c, x.varind, bsxfun(@times, x.deriv, d(1,:,:,:)) + bsxfun(@times, y.deriv, d(2,:,:,:)));
+                c = autodiff(c, x.varind, x.deriv .* d(1,:,:,:) + y.deriv .* d(2,:,:,:));
             elseif isautodiff(I) && ~isautodiff(x) && ~isautodiff(y)
                 [h, w, n] = size(I.value);
                 sz = size(I.value);
@@ -494,7 +494,27 @@ classdef autodiff
             end
         end
         
+        % Alternative method avoids a subsref of autodiff variables (for
+        % speed)
+        function c = ojw_interp2_alt(I, x, interp_mode, oobv)
+            if nargin < 3
+                interp_mode = 'l';
+            end
+            if nargin < 4
+                oobv = NaN;
+            end
+            assert(lower(interp_mode(1)) ~= 'c', 'Cubic interpolation not supported');
+            if isautodiff(x)  && ~isautodiff(I)
+                [c, d] = ojw_interp2(I, x.value(:,:,1), y.value(:,:,1), interp_mode, oobv);
+                c = autodiff(c, x.varind, x.deriv(:,:,:,1) .* d(1,:,:,:) + x.deriv(:,:,:,2) .* d(2,:,:,:));
+            else
+                error('Unexpected variables');
+            end
+        end
+        
         function c = expm_srt_3d(dP)
+            dP.value(1:3,:) = dP.value(1:3,:) * sqrt(2);
+            dP.deriv(:,1:3,:) = dP.deriv(:,1:3,:) * sqrt(2);
             switch size(dP, 1)
                 case 3
                     type = 'so3';
@@ -503,11 +523,14 @@ classdef autodiff
                     dP = autodiff(dP.value([4:6 1:3],:), dP.varind, dP.deriv(:,[4:6 1:3],:));
                 case 7
                     type = 'sim3';
+                    dP.value(7,:) = dP.value(7,:) * sqrt(3);
+                    dP.deriv(:,7,:) = dP.deriv(:,7,:) * sqrt(3);
                     dP = autodiff(dP.value([4:6 1:3 7],:), dP.varind, dP.deriv(:,[4:6 1:3 7],:));
                 otherwise
                     error('Size of dP not recognized');
             end
             c = exp(lie(type), dP);
+            c = autodiff(c.value(1:3,:,:), c.varind, c.deriv(:,1:3,:,:));
         end
         
         function c = conv2(varargin)
@@ -558,6 +581,17 @@ classdef autodiff
             end
             d = permute(d, [3 1 2]);
             c = autodiff(c, v, d);
+        end
+        
+        function c = proj(a)
+            sz = size(a.value);
+            sz(1) = sz(1) - 1;
+            c = a.value(1:end-1,:);
+            b = 1 ./ a.value(end,:);
+            c = c .* b;
+            b = shiftdim(b, -1);
+            d = a.deriv(:,1:end-1,:) .* b - shiftdim(c, -1) .* a.deriv(:,end,:);
+            c = autodiff(reshape(c, sz), a.varind, reshape(d .* b, [size(d, 1) sz]));
         end
         
         % Debug
@@ -640,7 +674,7 @@ if stride(dim+1) == stride(end)
 elseif stride(dim) == 1
     I = I(:) + (0:stride(dim+1):stride(end)-1)';
 else
-    I = I(:) * stride(dim) + reshape(bsxfun(@plus, (1-stride(dim):0)', 0:stride(dim+1):stride(end)-1), [], 1);
+    I = I(:) * stride(dim) + reshape((1-stride(dim):0)' + (0:stride(dim+1):stride(end)-1), [], 1);
 end
 % Construct the output
 A = reshape(A(:,I), [szA(1) szI]);

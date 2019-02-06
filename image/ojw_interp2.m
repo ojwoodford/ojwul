@@ -13,7 +13,7 @@
 % interpolation.
 %
 %IN:
-%	A - HxWxC double, single, uint16, int16, uint8 or Logical array.
+%	A - HxWxC double, single, uint16, int16, uint8, int8 or Logical array.
 %	X - MxN horizontal offsets (1 being the centre of the first pixel).
 %	Y - MxN vertical offsets (1 being the centre of the first pixel).
 %	interp_mode - string, either 'nearest', 'linear', 'cubic', 'magic',
@@ -26,4 +26,4 @@
 function varargout = ojw_interp2(varargin)
 sourceList = {'ojw_interp2.cpp', '-Xopenmp'}; % Cell array of source files
 [varargout{1:nargout}] = compile(varargin{:}); % Compilation happens here
-return
+end
