@@ -19,7 +19,6 @@ function retval = ojw_progressbar(tag, proportion, min_update_interval)
 %            1 iff progress bar initialized or reset,
 %            0 otherwise.
 
-% $Id: ojw_progressbar.m,v 1.1 2007/12/07 11:27:55 ojw Exp $
 % Based on Andrew Fitzgibbon's awf_progressbar
 
 % Check the input arguments
@@ -38,16 +37,11 @@ if nargin > 2
     end
 end
 retval = 0;
-
-% Only display if we can
-if ~usejava('awt')
-    return
-end
     
 % Ensure the global data structure exists
 persistent ojw_progressbar_data
 if isempty(ojw_progressbar_data)
-  ojw_progressbar_data.xx = 0;
+  ojw_progressbar_data.text_version = ~usejava('awt');
 end
 
 % Record the time
@@ -65,7 +59,7 @@ else
     % No tag by this name
     if proportion >= 1
         % No need to create one
-        return
+        return;
     end
     
     % Create a data structure for this tag
@@ -85,10 +79,14 @@ end
 
 if proportion >= 1
     % Close the progress bar
-    close(info.bar);
-    drawnow;
+    if ojw_progressbar_data.text_version
+        fprintf([repmat(' ', 1, 200) repmat('\b', 1, 200)]);
+    else
+        close(info.bar);
+        drawnow();
+    end
     ojw_progressbar_data = rmfield(ojw_progressbar_data, tag);
-    return
+    return;
 end
 
 % Check to see if we haven't started again
@@ -110,8 +108,8 @@ elseif etime(curr_time, info.last_update) >= info.min_update
 end
 
 switch retval
-    case 1
-        newtitle = 'Starting...';
+    case 0
+        return;
     case 2
         info.last_update = curr_time;
         t_elapsed = etime(curr_time, info.timer);
@@ -124,19 +122,28 @@ switch retval
                 newtitle = sprintf('%s, ETA: %s', newtitle, datestr(datenum(curr_time) + (t_remaining * 1.15741e-5), 0));
             end
         end
-    otherwise
-        return
+    case 1
+        newtitle = 'Starting...';
 end
+info.prop = proportion;
 
 % Update the waitbar
-if ishandle(info.bar) 
-    waitbar(proportion, info.bar, newtitle);
+if ojw_progressbar_data.text_version
+    % Text version
+    proportion = floor(proportion * 50);
+    str = sprintf('  %s |%s%s| %s', tag_title, repmat('#', 1, proportion), repmat(' ', 1, 50 - proportion), newtitle);
+    fprintf([str repmat('\b', 1, numel(str))]);
+    drawnow();
 else
-    info.bar = waitbar(proportion, newtitle, 'Name', tag_title);
+    % Graphics version
+    if ishandle(info.bar)
+        waitbar(proportion, info.bar, newtitle);
+    else
+        info.bar = waitbar(proportion, newtitle, 'Name', tag_title);
+    end
 end
 
 % Update our global variable with the changes to this tag
-info.prop = proportion;
 ojw_progressbar_data.(tag) = info;
 return
 
