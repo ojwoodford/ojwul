@@ -22,6 +22,8 @@
 %
 %OUT:
 %	V - MxNxC interpolated values. Class is the same as that of oobv.
+%   G - 2xMxNxC array of gradients of V in x and y directions:
+%       [shiftdim(Vx, -1); shiftdim(Vy, -1)].
 
 function varargout = ojw_interp2(varargin)
 sourceList = {'ojw_interp2.cpp', '-Xopenmp'}; % Cell array of source files
