@@ -590,8 +590,8 @@ classdef autodiff
             b = 1 ./ a.value(end,:);
             c = c .* b;
             b = shiftdim(b, -1);
-            d = a.deriv(:,1:end-1,:) .* b - shiftdim(c, -1) .* a.deriv(:,end,:);
-            c = autodiff(reshape(c, sz), a.varind, reshape(d .* b, [size(d, 1) sz]));
+            d = a.deriv(:,1:end-1,:) .* b - (shiftdim(c, -1) .* b) .* a.deriv(:,end,:);
+            c = autodiff(reshape(c, sz), a.varind, reshape(d, [size(d, 1) sz]));
         end
         
         % Debug
