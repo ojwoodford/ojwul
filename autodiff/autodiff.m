@@ -505,7 +505,7 @@ classdef autodiff
             end
             assert(lower(interp_mode(1)) ~= 'c', 'Cubic interpolation not supported');
             if isautodiff(x)  && ~isautodiff(I)
-                [c, d] = ojw_interp2(I, x.value(:,:,1), y.value(:,:,1), interp_mode, oobv);
+                [c, d] = ojw_interp2(I, x.value(:,:,1), x.value(:,:,2), interp_mode, oobv);
                 c = autodiff(c, x.varind, x.deriv(:,:,:,1) .* d(1,:,:,:) + x.deriv(:,:,:,2) .* d(2,:,:,:));
             else
                 error('Unexpected variables');
