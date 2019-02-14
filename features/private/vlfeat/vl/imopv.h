@@ -1,17 +1,18 @@
-/** @file   imopv.h
+/** @file imopv.h
+ ** @brief Vectorized image operations
  ** @author Andrea Vedaldi
- ** @brief  Vectorized image operations
  **/
 
-/* AUTORIGHTS
-Copyright (C) 2007-10 Andrea Vedaldi and Brian Fulkerson
+/*
+Copyright (C) 2007-12 Andrea Vedaldi and Brian Fulkerson.
+All rights reserved.
 
-This file is part of VLFeat, available under the terms of the
-GNU GPLv2, or (at your option) any later version.
+This file is part of the VLFeat library and is made available under
+the terms of the BSD license (see the COPYING file).
 */
 
 #ifndef VL_IMOPV_H
-#define VL_IMPOV_H
+#define VL_IMOPV_H
 
 #include "generic.h"
 
@@ -26,17 +27,17 @@ GNU GPLv2, or (at your option) any later version.
 /** @name Image convolution
  ** @{ */
 VL_EXPORT
-void vl_imconvcol_vf (float* dst, int dst_stride,
+void vl_imconvcol_vf (float* dst, vl_size dst_stride,
                       float const* src,
-                      int src_width, int src_height, int src_stride,
-                      float const* filt, int filt_begin, int filt_end,
+                      vl_size src_width, vl_size src_height, vl_size src_stride,
+                      float const* filt, vl_index filt_begin, vl_index filt_end,
                       int step, unsigned int flags) ;
 
 VL_EXPORT
-void vl_imconvcol_vd (double* dst, int dst_stride,
+void vl_imconvcol_vd (double* dst, vl_size dst_stride,
                       double const* src,
-                      int src_width, int src_height, int src_stride,
-                      double const* filt, int filt_begin, int filt_end,
+                      vl_size src_width, vl_size src_height, vl_size src_stride,
+                      double const* filt, vl_index filt_begin, vl_index filt_end,
                       int step, unsigned int flags) ;
 
 VL_EXPORT
@@ -101,6 +102,61 @@ vl_image_distance_transform_f (float const * image,
                                vl_uindex * indexes,
                                float coeff,
                                float offset) ;
+
+/** @} */
+
+/* ---------------------------------------------------------------- */
+/** @name Image smoothing */
+/** @{ */
+
+VL_EXPORT void
+vl_imsmooth_f (float *smoothed, vl_size smoothedStride,
+               float const *image, vl_size width, vl_size height, vl_size stride,
+               double sigmax, double sigmay) ;
+
+VL_EXPORT void
+vl_imsmooth_d (double *smoothed, vl_size smoothedStride,
+               double const *image, vl_size width, vl_size height, vl_size stride,
+               double sigmax, double sigmay) ;
+
+/** @} */
+
+/* ---------------------------------------------------------------- */
+/** @name Image gradients */
+/** @{ */
+VL_EXPORT void
+vl_imgradient_polar_f (float* amplitudeGradient, float* angleGradient,
+                       vl_size gradWidthStride, vl_size gradHeightStride,
+                       float const* image,
+                       vl_size imageWidth, vl_size imageHeight,
+                       vl_size imageStride);
+
+VL_EXPORT void
+vl_imgradient_polar_d (double* amplitudeGradient, double* angleGradient,
+                       vl_size gradWidthStride, vl_size gradHeightStride,
+                       double const* image,
+                       vl_size imageWidth, vl_size imageHeight,
+                       vl_size imageStride);
+
+VL_EXPORT void
+vl_imgradient_f (float* xGradient, float* yGradient,
+                 vl_size gradWidthStride, vl_size gradHeightStride,
+                 float const *image,
+                 vl_size imageWidth, vl_size imageHeight, vl_size imageStride);
+
+VL_EXPORT void
+vl_imgradient_d(double* xGradient, double* yGradient,
+                vl_size gradWidthStride, vl_size gradHeightStride,
+                double const *image,
+                vl_size imageWidth, vl_size imageHeight, vl_size imageStride);
+
+VL_EXPORT void
+vl_imgradient_polar_f_callback(float const *sourceImage,
+                               int sourceImageWidth, int sourceImageHeight,
+                               float *dstImage,
+                               int dstWidth, int dstHeight,
+                               int octave, int level,
+                               void *params);
 
 /** @} */
 

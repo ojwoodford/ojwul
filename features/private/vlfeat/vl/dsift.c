@@ -1,14 +1,15 @@
-/** @internal
- ** @file   dsift.c
- ** @brief  Dense SIFT (DSIFT) - Definition
+/** @file dsift.c
+ ** @brief Dense SIFT - Definition
  ** @author Andrea Vedaldi
+ ** @author Brian Fulkerson
  **/
 
-/* AUTORIGHTS
-Copyright (C) 2007-10 Andrea Vedaldi and Brian Fulkerson
+/*
+Copyright (C) 2007-12 Andrea Vedaldi and Brian Fulkerson.
+All rights reserved.
 
-This file is part of VLFeat, available under the terms of the
-GNU GPLv2, or (at your option) any later version.
+This file is part of the VLFeat library and is made available under
+the terms of the BSD license (see the COPYING file).
 */
 
 #include "dsift.h"
@@ -19,25 +20,17 @@ GNU GPLv2, or (at your option) any later version.
 #include <string.h>
 
 /**
-@file dsift.h
-@brief Dense SIFT
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+@page dsift Dense Scale Invariant Feature Transform (DSIFT)
 @author Andrea Vedaldi
 @author Brian Fulkerson
-
-<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
-@section dsift Dense Scale Invariant Feature Transform
+@tableofcontents
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
 
-This module implements a dense version of @ref sift.h "SIFT". This is
+@ref dsift.h implements a dense version of @ref sift.h "SIFT". This is
 an object that can quickly compute descriptors for densely sampled
 keypoints with identical size and orientation. It can be reused for
 multiple images of the same size.
-
-- @ref dsift-intro
-- @ref dsift-usage
-- @ref dsift-tech
-  - @ref dsift-tech-descriptor-dense
-  - @ref dsift-tech-sampling
 
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
 @section dsift-intro Overview
@@ -85,15 +78,15 @@ DSIFT is implemented by a ::VlDsiftFilter object that can be used
 to process a sequence of images of a given geometry.
 To use the <b>DSIFT filter</b>:
 
-- Initialize a new DSIFT filter object by ::vl_dsift_new() (or the simplified
-::vl_dsift_new_basic()). Customize the descriptor parameters by
-::vl_dsift_set_steps, ::vl_dsfit_set_geometry, etc.
-- Process an image by ::vl_dsift_process().
-- Retrieve the number of keypoints (::vl_dsift_get_nkeypoint), the
+- Initialize a new DSIFT filter object by ::vl_dsift_new (or the simplified
+::vl_dsift_new_basic). Customize the descriptor parameters by
+::vl_dsift_set_steps, ::vl_dsift_set_geometry, etc.
+- Process an image by ::vl_dsift_process.
+- Retrieve the number of keypoints (::vl_dsift_get_keypoint_num), the
   keypoints (::vl_dsift_get_keypoints), and their descriptors
   (::vl_dsift_get_descriptors).
 - Optionally repeat for more images.
-- Delete the DSIFT filter by ::vl_dsift_delete().
+- Delete the DSIFT filter by ::vl_dsift_delete.
 
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
 @section dsift-tech Technical details
@@ -111,7 +104,7 @@ position (and with null rotation), further simplifications are
 possible. In this case, in fact,
 
 @f{eqnarray*}
-     \mathbf{x} &=& m \sigma \hat \mathbf{x} + T,\\
+     \mathbf{x} &=& m \sigma \hat{\mathbf{x}} + T,\\
  h(t,i,j)
  &=&
  m \sigma \int
@@ -246,7 +239,6 @@ and we impose that the bin size @f$ m \sigma @f$ is integer as well.
 
 /** ------------------------------------------------------------------
  ** @internal @brief Initialize new convolution kernel
- **
  ** @param binSize
  ** @param numBins
  ** @param binIndex negative to use flat window.
@@ -270,7 +262,7 @@ _vl_dsift_new_kernel (int binSize, int numBins, int binIndex, double windowSize)
 
   for (x = - binSize + 1 ; x <= + binSize - 1 ; ++ x) {
     float z = (x - delta) / sigma ;
-    *kerIter++ = (1.0F - fabsf(x) / binSize) *
+    *kerIter++ = (1.0F - fabsf((float)x) / binSize) *
       ((binIndex >= 0) ? expf(- 0.5F * z*z) : 1.0F) ;
   }
   return ker ;
@@ -462,15 +454,13 @@ vl_dsift_new (int imWidth, int imHeight)
 
 /** ------------------------------------------------------------------
  ** @brief Create a new DSIFT filter (basic interface)
- **
  ** @param imWidth width of the image.
  ** @param imHeight height of the image.
  ** @param step sampling step.
  ** @param binSize bin size.
+ ** @return new filter.
  **
  ** The descriptor geometry matches the standard SIFT descriptor.
- **
- ** @return new filter.
  **/
 
 VL_EXPORT VlDsiftFilter *
@@ -718,7 +708,7 @@ void vl_dsift_process (VlDsiftFilter* self, float const* im)
 
       /* quantize angle */
       nt = vl_mod_2pi_f (angle) * (self->geom.numBinT / (2*VL_PI)) ;
-      bint = vl_floor_f (nt) ;
+      bint = (int) vl_floor_f (nt) ;
       rbint = nt - bint ;
 
       /* write it back */

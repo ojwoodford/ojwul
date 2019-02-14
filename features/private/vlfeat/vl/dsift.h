@@ -1,13 +1,15 @@
-/** @file     dsift.h
- ** @brief    Dense SIFT (DSIFT)
- ** @author   Andrea Vedaldi
+/** @file dsift.h
+ ** @brief Dense SIFT (@ref dsift)
+ ** @author Andrea Vedaldi
+ ** @author Brian Fulkerson
  **/
 
-/* AUTORIGHTS
-Copyright (C) 2007-10 Andrea Vedaldi and Brian Fulkerson
+/*
+Copyright (C) 2007-12 Andrea Vedaldi and Brian Fulkerson.
+All rights reserved.
 
-This file is part of VLFeat, available under the terms of the
-GNU GPLv2, or (at your option) any later version.
+This file is part of the VLFeat library and is made available under
+the terms of the BSD license (see the COPYING file).
 */
 
 #ifndef VL_DSIFT_H
@@ -90,8 +92,8 @@ VL_INLINE void vl_dsift_set_bounds (VlDsiftFilter *self,
                                    int maxX,
                                    int maxY) ;
 VL_INLINE void vl_dsift_set_geometry (VlDsiftFilter *self,
-                                     VlDsiftDescriptorGeometry const* geom) ;
-VL_INLINE void vl_dsift_set_flat_window (VlDsiftFilter *self, vl_bool flatWindow) ;
+                                      VlDsiftDescriptorGeometry const* geom) ;
+VL_INLINE void vl_dsift_set_flat_window (VlDsiftFilter *self, vl_bool useFlatWindow) ;
 VL_INLINE void vl_dsift_set_window_size (VlDsiftFilter *self, double windowSize) ;
 /** @} */
 
@@ -267,7 +269,7 @@ vl_dsift_set_bounds (VlDsiftFilter* self,
 
 void
 vl_dsift_set_geometry (VlDsiftFilter *self,
-                      VlDsiftDescriptorGeometry const *geom)
+                       VlDsiftDescriptorGeometry const *geom)
 {
   self->geom = *geom ;
   _vl_dsift_update_buffers(self) ;
@@ -281,7 +283,7 @@ vl_dsift_set_geometry (VlDsiftFilter *self,
 
 void
 vl_dsift_set_flat_window (VlDsiftFilter* self,
-                         int useFlatWindow)
+                         vl_bool useFlatWindow)
 {
   self->useFlatWindow = useFlatWindow ;
 }

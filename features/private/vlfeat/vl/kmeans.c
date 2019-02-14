@@ -1,13 +1,363 @@
-/** @file   kmeans.c
- ** @author Andrea Vedaldi
- ** @brief  K-means - Declaration
+/** @file kmeans.c
+ ** @brief K-means - Declaration
+ ** @author Andrea Vedaldi, David Novotny
  **/
 
-/* AUTORIGHTS
-Copyright (C) 2007-10 Andrea Vedaldi and Brian Fulkerson
+/*
+Copyright (C) 2007-12 Andrea Vedaldi and Brian Fulkerson.
+Copyright (C) 2013 Andrea Vedaldi and David Novotny.
+All rights reserved.
 
-This file is part of VLFeat, available under the terms of the
-GNU GPLv2, or (at your option) any later version.
+This file is part of the VLFeat library and is made available under
+the terms of the BSD license (see the COPYING file).
+*/
+
+/**
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+@page kmeans K-means clustering
+@author Andrea Vedaldi
+@author David Novotny
+@tableofcontents
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+
+@ref kmeans.h implements a number of algorithm for **K-means
+quantization**: Lloyd @cite{lloyd82least}, an accelerated version by
+Elkan @cite{elkan03using}, and a large scale algorithm based on
+Approximate Nearest Neighbors (ANN). All algorithms support @c float
+or @c double data and can use the $l^1$ or the $l^2$ distance for
+clustering. Furthermore, all algorithms can take advantage of multiple
+CPU cores.
+
+Please see @subpage kmeans-fundamentals for a technical description of
+K-means and of the algorithms implemented here.
+
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+@section kmeans-starting Getting started
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+
+The goal of K-means is to partition a dataset into $K$
+&ldquo;compact&rdquo; clusters. The following example demonstrates
+using @ref kmeans.h in the C programming language to partition @c
+numData @c float vectors into compute @c numCenters clusters using
+Lloyd's algorithm:
+
+@code
+#include <vl/kmeans.h>
+double energy ;
+double * centers ;
+
+// Use float data and the L2 distance for clustering
+KMeans * kmeans = vl_kmeans_new (VLDistanceL2, VL_TYPE_FLOAT) ;
+
+// Use Lloyd algorithm
+vl_kmeans_set_algorithm (kmeans, VlKMeansLloyd) ;
+
+// Initialize the cluster centers by randomly sampling the data
+vl_kmeans_init_centers_with_rand_data (kmeans, data, dimension, numData, numCenters) ;
+
+// Run at most 100 iterations of cluster refinement using Lloyd algorithm
+vl_kmeans_set_max_num_iterations (kmeans, 100) ;
+vl_kmeans_refine_centers (kmeans, data, numData) ;
+
+// Obtain the energy of the solution
+energy = vl_kmeans_get_energy(kmeans) ;
+
+// Obtain the cluster centers
+centers = vl_kmeans_get_centers(kmeans) ;
+@endcode
+
+Once the centers have been obtained, new data points can be assigned
+to clusters by using the ::vl_kmeans_quantize function:
+
+@code
+vl_uint32 * assignments = vl_malloc(sizeof(vl_uint32) * numData) ;
+float * distances = vl_malloc(sizeof(float) * numData) ;
+vl_kmeans_quantize(kmeans, assignments, distances, data, numData) ;
+@endcode
+
+Alternatively, one can directly assign new pointers to the closest
+centers, without bothering with a ::VlKMeans object.
+
+There are several considerations that may impact the performance of
+KMeans. First, since K-means is usually based local optimization
+algorithm, the **initialization method** is important. The following
+initialization methods are supported:
+
+Method         | Function                                | Description
+---------------|-----------------------------------------|-----------------------------------------------
+Random samples | ::vl_kmeans_init_centers_with_rand_data | Random data points
+K-means++      | ::vl_kmeans_init_centers_plus_plus      | Random selection biased towards diversity
+Custom         | ::vl_kmeans_set_centers                 | Choose centers (useful to run quantization only)
+
+See @ref kmeans-init for further details. The initialization methods
+use a randomized selection of the data points; the random number
+generator init is controlled by ::vl_rand_init.
+
+The second important choice is the **optimization algorithm**. The
+following optimization algorithms are supported:
+
+Algorithm   | Symbol           | See               | Description
+------------|------------------|-------------------|-----------------------------------------------
+Lloyd       | ::VlKMeansLloyd  | @ref kmeans-lloyd | Alternate EM-style optimization
+Elkan       | ::VlKMeansElkan  | @ref kmeans-elkan | A speedup using triangular inequalities
+ANN         | ::VlKMeansANN    | @ref kmeans-ann   | A speedup using approximated nearest neighbors
+
+See the relative sections for further details. These algorithm are
+iterative, and stop when either a **maximum number of iterations**
+(::vl_kmeans_set_max_num_iterations) is reached, or when the energy
+changes sufficiently slowly in one iteration (::vl_kmeans_set_min_energy_variation).
+
+
+All the three algorithms support multithreaded computations. The number
+of threads used is usually controlled globally by ::vl_set_num_threads.
+**/
+
+/**
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+@page kmeans-fundamentals K-means fundamentals
+@tableofcontents
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+
+Given $n$ points $\bx_1,\dots,\bx_n \in \real^d$, the goal of K-means
+is find $K$ `centers` $\bc_1,\dots,\bc_m \in \real^d$ and
+`assignments` $q_1,\dots,q_n \in \{1,\dots,K\}$ of the points to the
+centers such that the sum of distances
+
+\[
+ E(\bc_1,\dots,\bc_k,q_1,\dots,q_n)
+ = \sum_{i=1}^n \|\bx_i - \bc_{q_i} \|_p^p
+\]
+
+is minimized. $K$-means is obtained for the case $p=2$ ($l^2$ norm),
+because in this case the optimal centers are the means of the input
+vectors assigned to them. Here the generalization $p=1$ ($l^1$ norm)
+will also be considered.
+
+Up to normalization, the K-means objective $E$ is also the average
+reconstruction error if the original points are approximated with the
+cluster centers. Thus K-means is used not only to group the input
+points into cluster, but also to `quantize` their values.
+
+K-means is widely used in computer vision, for example in the
+construction of vocabularies of visual features (visual words). In
+these applications the number $n$ of points to cluster and/or the
+number $K$ of clusters is often large. Unfortunately, minimizing the
+objective $E$ is in general a difficult combinatorial problem, so
+locally optimal or approximated solutions are sought instead.
+
+The basic K-means algorithm alternate between re-estimating the
+centers and the assignments (@ref kmeans-lloyd). Combined with a good
+initialization strategy (@ref kmeans-init) and, potentially, by
+re-running the optimization from a number of randomized starting
+states, this algorithm may attain satisfactory solutions in practice.
+
+However, despite its simplicity, Lloyd's algorithm is often too slow.
+A good replacement is Elkan's algorithm (@ref kmeans-elkan), which
+uses the triangular inequality to cut down significantly the cost of
+Lloyd's algorithm. Since this algorithm is otherwise equivalent, it
+should often be preferred.
+
+For very large problems (millions of point to clusters and hundreds,
+thousands, or more clusters to find), even Elkan's algorithm is not
+sufficiently fast. In these cases, one can resort to a variant of
+Lloyd's algorithm that uses an approximated nearest neighbors routine
+(@ref kmeans-ann).
+
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+@section kmeans-init Initialization methods
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+
+All the $K$-means algorithms considered here find locally optimal
+solutions; as such the way they are initialized is important. @ref
+kmeans.h supports the following initialization algorithms:
+
+@par Random data samples
+
+The simplest initialization method is to sample $K$ points at random
+from the input data and use them as initial values for the cluster
+centers.
+
+@par K-means++
+
+@cite{arthur07k-means} proposes a randomized initialization of the
+centers which improves upon random selection. The first center $\bc_1$
+is selected at random from the data points $\bx_1, \dots, \bx_n $ and
+the distance from this center to all points $\|\bx_i - \bc_1\|_p^p$ is
+computed. Then the second center $\bc_2$ is selected at random from
+the data points with probability proportional to the distance. The
+procedure is repeated to obtain the other centers by using the minimum
+distance to the centers collected so far.
+
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+@section kmeans-lloyd Lloyd's algorithm
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+
+The most common K-means method is Lloyd's algorithm
+@cite{lloyd82least}. This algorithm is based on the observation that,
+while jointly optimizing clusters and assignment is difficult,
+optimizing one given the other is easy. Lloyd's algorithm alternates
+the steps:
+
+1. **Quantization.** Each point $\bx_i$ is reassigned to the center
+   $\bc_{q_j}$ closer to it. This requires finding for each point the
+   closest among $K$ other points, which is potentially slow.
+2. **Center estimation.** Each center $\bc_q$ is updated to minimize
+   its average distances to the points assigned to it. It is easy to
+   show that the best center is the mean or median of the points,
+   respectively if the $l^2$ or $l^1$ norm is considered.
+
+A naive implementation of the assignment step requires $O(dnK)$
+operations, where $d$ is the dimensionality of the data, $n$ the
+number of data points, and $K$ the number of centers. Updating the
+centers is much cheaper: $O(dn)$ operations suffice to compute the $K$
+means and a slightly higher cost is required for the medians. Clearly,
+the bottleneck is the assignment computation, and this is what the
+other K-means algorithm try to improve.
+
+During the iterations, it can happen that a cluster becomes empty. In
+this case, K-means automatically **&ldquo;restarts&rdquo; the
+cluster** center by selecting a training point at random.
+
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+@section kmeans-elkan Elkan's algorithm
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+
+Elkan's algorithm @cite{elkan03using} is a variation of Lloyd
+alternate optimization algorithm (@ref kmeans-lloyd) that uses the
+triangular inequality to avoid many distance calculations when
+assigning points to clusters. While much faster than Lloyd, Elkan's
+method uses storage proportional to the umber of clusters by data
+points, which makes it unpractical for a very large number of
+clusters.
+
+The idea of this algorithm is that, if a center update does not move
+them much, then most of the point-to-center computations can be
+avoided when the point-to-center assignments are recomputed. To detect
+which distances need evaluation, the triangular inequality is used to
+lower and upper bound distances after a center update.
+
+Elkan algorithms uses two key observations. First, one has
+
+\[
+\|\bx_i - \bc_{q_i}\|_p \leq \|\bc - \bc_{q_i}\|_p / 2
+\quad\Rightarrow\quad
+\|\bx_i - \bc_{q_i}\|_p \leq \|\bx_i - \bc\|_p.
+\]
+
+Thus if the distance between $\bx_i$ and its current center
+$\bc_{q_i}$ is less than half the distance of the center $\bc_{q_i}$
+to another center $\bc$, then $\bc$ can be skipped when the new
+assignment for $\bx_i$ is searched. Checking this requires keeping
+track of all the inter-center distances, but centers are typically a
+small fraction of the training data, so overall this can be a
+significant saving. In particular, if this condition is satisfied for
+all the centers $\bc \not= \bc_{q_i}$, the point $\bx_i$ can be
+skipped completely. Furthermore, the condition can be tested also
+based on an upper bound $UB_i$ of $\|\bx_i - \bc_{q_i}\|_p$.
+
+Second, if a center $\bc$ is updated to $\hat{\bc}$, then the new
+distance from $\bx$ to $\hat{\bc}$ is bounded from below and above by
+
+\[
+\|\bx - \bc\|_p - \|bc - \hat\bc\|_p
+\leq
+\|\bx - \hat{\bc}\|_p
+\leq
+\|\bx - \hat{\bc}\|_p + \|\bc + \hat{\bc}\|_p.
+\]
+
+This allows to maintain an upper bound on the distance of $\bx_i$ to
+its current center $\bc_{q_i}$ and a lower bound to any other center
+$\bc$:
+
+@f{align*}
+  UB_i      & \leftarrow UB_i + \|\bc_{q_i} - \hat{\bc}_{q_i} \|_p \\
+  LB_i(\bc) & \leftarrow LB_i(\bc) - \|\bc -\hat \bc\|_p.
+@f}
+
+Thus the K-means algorithm becomes:
+
+1.  **Initialization.** Compute $LB_i(\bc) = \|\bx_i -\hat \bc\|_p$ for
+    all points and centers.  Find the current assignments $q_i$ and
+    bounds $UB_i$ by finding the closest centers to each point: $UB_i =
+    \min_{\bc} LB_i(\bc)$.
+2.  **Center estimation.**
+    1. Recompute all the centers based on the new means; call the updated
+       version $\hat{\bc}$.
+    2. Update all the bounds based on the distance $\|\bc - \hat\bc\|_p$
+       as explained above.
+    3. Set $\bc \leftarrow \hat\bc$ for all the centers and go to the next
+       iteration.
+3.  **Quantization.**
+    1. Skip any point $\bx_i$ such that $UB_i \leq \frac{1}{2} \|\bc_{q_i} - \bc\|_p$
+       for all centers $\bc \not= \bc_{q_i}$.
+    2. For each remaining point $\bx_i$ and center $\bc \not= \bc_{q_i}$:
+       1. Skip $\bc$ if
+          \[
+           UB_i \leq \frac{1}{2} \| \bc_{q_i} - \bc \|
+           \quad\text{or}\quad
+           UB_i \leq LB_i(\bc).
+           \]
+          The first condition reflects the first observation above; the
+          second uses the bounds to decide if $\bc$ can be closer than the
+          current center $\bc_{q_i}$ to the point $\bx_i$. If the center
+          cannot be skipped, continue as follows.
+       3. Skip $\bc$ if the condition above is satisfied after making the
+          upper bound tight:
+          \[
+          UB_i = LB_i(\bc_{q_i}) = \| \bx_i - \bc_{q_i} \|_p.
+          \]
+          Note that the latter calculation can be done only once for $\bx_i$.
+          If the center cannot be skipped still, continue as follows.
+       4. Tighten the lower bound too:
+          \[
+          LB_i(\bc) = \| \bx_i - \bc \|_p.
+          \]
+          At this point both $UB_i$ and $LB_i(\bc)$ are tight. If $LB_i <
+          UB_i$, then the point $\bx_i$ should be reassigned to
+          $\bc$. Update $q_i$ to the index of center $\bc$ and reset $UB_i
+          = LB_i(\bc)$.
+
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+@section kmeans-ann ANN algorithm
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  -->
+
+The *Approximate Nearest Neighbor* (ANN) K-means algorithm
+@cite{beis97shape} @cite{silpa-anan08optimised} @cite{muja09fast} is a
+variant of Lloyd's algorithm (@ref kmeans-lloyd) uses a best-bin-first
+randomized KD-tree algorithm to approximately (and quickly) find the
+closest cluster center to each point. The KD-tree implementation is
+based on @ref kdtree.
+
+The algorithm can be summarized as follows:
+
+1. **Quantization.** Each point $\bx_i$ is reassigned to the center
+   $\bc_{q_j}$ closer to it. This starts by indexing the $K$ centers
+   by a KD-tree and then using the latter to quickly find the closest
+   center for every training point. The search is approximated to
+   further improve speed. This opens up the possibility that a data
+   point may receive an assignment that is *worse* than the current
+   one. This is avoided by checking that the new assignment estimated
+   by using ANN is an improvement; otherwise the old assignment is
+   kept.
+2. **Center estimation.** Each center $\bc_q$ is updated to minimize
+   its average distances to the points assigned to it. It is easy to
+   show that the best center is the mean or median of the points,
+   respectively if the $l^2$ or $l^1$ norm is considered.
+
+The key is to trade-off carefully the speedup obtained by using the
+ANN algorithm and the loss in accuracy when retrieving neighbors.  Due
+to the curse of dimensionality, KD-trees become less effective for
+higher dimensional data, so that the search cost, which in the best
+case is logarithmic with this data structure, may become effectively
+linear. This is somehow mitigated by the fact that new a new KD-tree
+is computed at each iteration, reducing the likelihood that points may
+get stuck with sub-optimal assignments.
+
+Experiments with the quantization of 128-dimensional SIFT features
+show that the ANN algorithm may use one quarter of the comparisons of
+Elkan's while retaining a similar solution accuracy.
+
 */
 
 #include "kmeans.h"
@@ -15,161 +365,10 @@ GNU GPLv2, or (at your option) any later version.
 #include "mathop.h"
 #include <string.h>
 
-/** @file kmeans.h
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
- @section kmeans-overview Overview
-
- @ref kmeans.h implements a number of algorithm for k-means quantisation.
- It supports
-
- - data of type @c float or @c double;
- - @e l1 and @e l2 distances;
- - random selection and <code>k-means++</code> initialization methods;
- - basic Lloyd and accelerated Elkan optimization methods.
-
- @section kmeans-usage Usage
-
- To use @ref kmeans.h to learn clusters from some training data,
- instantiate a ::KMeans object, set the configuration
- parameters, initialise the cluster centers, and run the trainig code.
- For instance, to learn @c numCenters clusters from
- @c numData vectors of dimension @c dimension
- and storage type @c float using L2 distance
- and at most 100 Lloyd iterations of the Lloyd algorithm use:
-
- @code
- #include <vl/kmeans.h>
-
- VlKMeansAlgorithm algorithm = VlKMeansLLoyd ;
- VlVectorComparisonType distance = VlDistanceL2 ;
- KMeans * kmeans = vl_kmeans_new (algorithm, distance, VL_TYPE_FLOAT) ;
- vl_kmeans_init_centers_with_rand_data (kmeans, data, dimension, numData, numCenters) ;
- vl_kmeans_set_max_num_iterations (kmeans, 100) ;
- vl_kmeans_train (kmeans) ;
- @endcode
-
- Use ::vl_kmeans_get_energy to get the solution energy (or an upper
- bound for the Elkan algorithm) and ::vl_kmeans_get_centers
- to obtain the @c numCluster cluster centers. Use ::vl_kmeans_push
- to quantize new data points.
-
- @subsection kmeans-usage-init Initialization algorithms
-
- @ref kmeans.h supports the following cluster initialization algorithms:
-
- - <b>Random data points</b> (::vl_kmeans_init_centers_with_rand_data)
-   initialize the centers from a random selection of the training data.
- - <b>k-means++</b> (::vl_kmeans_init_centers_plus_plus) initialize
-   the centers from a random selection of the training data while
-   attempting to obtain a good coverage of the dataset. This is
-   the strategy from [1].
-
- @subsection kmeans-usage-optimizers Optimization algorithms
-
- @ref kmeans.h supports the following optimization algorithms:
-
- - <b>Lloyd</b> [2] (::VlKMeansLloyd). This is the standard k-means algorithm,
-   alternating the estimation of the point-to-cluster memebrship and
-   of the cluster centers (means in the Euclidean case). Estimating
-   membership requires computing the distance of each point to all
-   cluster centers, which can be extremely slow.
- - <b>Elkan</b> [3] (::VlKMeansElkan). This is a variation of [2] that uses
-   the triangular inequality to avoid many distance calculations
-   when assigning points to clusters and is typically much
-   faster than [2]. However, it uses storage
-   proportional to the square of the number of clusters, which
-   makes it unpractical for a very large number of clusters.
-
- @section kmeans-tech Technical details
-
- Given data points @f$ x_1, \dots, x_n \in \mathbb{R}^d @f$, k-means
- searches for @f$ k @f$ vectors @f$ c_1, \dots, c_n \in \mathbb{R}^d @f$
- (cluster centers) and a function @f$ \pi : \{1, \dots, n\}
- \rightarrow \{1, \dots, k\} @f$ (cluster memberships)
- that minimize the objective:
-
- @f[
-   E(c_1,\dots,c_n,\pi) = \sum_{i=1}^n d^2(x_i, c_{\pi(i)})
- @f]
-
- A simple procedure due to Lloyd [2] to locally optimize this objective
- alternates estimating the cluster centers and the membeship function.
- Specifically, given the membership function @f$ \pi @f$,
- the objective can be minimized independently for eac @f$ c_k @f$
- by minimizing
-
- @f[
-   \sum_{i : \pi(i) = k} d^2(x_i, c_k)
- @f]
-
- For the Euclidean distance, the minimizer is simply the mean of the points
- assigned to that cluster. For other distances, the minimizer is
- a generalized average. For instance, for the @f$ l^1 @f$ distance,
- this is the median. Assuming that computing the average is linear
- in the number of points and the data dimension,
- this step requires @f$ O(nd) @f$ operations.
-
- Similarly, given the centers @f$ c_1, \dots, c_k @f$, the objective
- can be optimized independently for the membership @f$ \pi(i) @f$ of
- each point @f$ x_i @f$ by minimizing @f$ d^2(x_i, c_{\pi(i)}) @f$
- over @f$ \pi(i) \in \{1, \dots, k\} @f$. Assuming that computing
- a distance is @f$ O(d) @f$, this step requires @f$ O(ndk) @f$ operations
- and dominates the other.
-
- The algorithm usually starts by initializing the centers from a
- random selection of the data point.
-
- @subsection kmeans-tech-kmeanspp Initialization by k-means++
-
- [1] proposes a randomized initialization of the centers which improves
- upon random selection. The first center @f$ c_1 @f$ is selected at random
- from the data points @f$ x_1, \dots, x_n @f$ and
- the distance from this center to all points @f$ d^2(x_i, c_1) @f$ is
- computed. Then the second center @f$ c_2 @f$ is selected at random
- from the data points with probability proportional to the distance, and
- the procedure is repeated using the minimum distance to the centers
- collected so far.
-
- @subsection kmeans-tech-elkan Speeding up by using the triangular inequality
-
- [3] proposes to use the triangular inequality to avoid most
- distances calculations when computing point-to-cluster membership
- and the cluster centers did not change much from the previous iteration.
-
- This uses two key ideas:
-
- - If a point @f$ x_i @f$ is very close to its current
-   center @f$  c_{\pi(i)} @f$ and this center is very far from another
-   center @f$ c @f$, then the point cannot be assigned to @f$ c @f$.
-   Specifically, if @f$ d(x_i, c_{\pi(i)}) \leq d(c_{\pi(i)}, c) / 2 @f$,
-   then also @f$ d(x_i, c_{\pi(i)}) \leq d(x_i, c) @f$.
-
- - If a center @f$ c @f$ is updated to @f$ \hat c @f$, then the variation
-   of the distance of the center to any point can be bounded by
-   @f$ d(x, c) - d(c, \hat c) \leq d(x, \hat c) \leq d(x,c) + d(c, \hat c) @f$.
-
- The first idea is used by keeping track of the inter-center distances and
- exlcuding reassigments to centers too far away from the current assigned
- center. The second idea is used by keeping for each point an upper bound
- to the distance to the currently assigned center and a lower bound to the
- distance to all the other centers. Unless such bounds do not intersect,
- then a point need not to be reassigned. See [3] for details.
-
- @section kmeans-references References
-
- - [1] D. Arthur and S. Vassilvitskii.
-   <em>k-means++: The advantages of careful seeding.</em>
-   In Proc. ACM-SIAM Symp. on Discrete Algorithms, 2007.
-
- - [2] S. Lloyd.
-   <em>Least square quantization in PCM.</em>
-   IEEE Trans. on Information Theory, 28(2), 1982.
-
- - [3] C. Elkan.
-   <em>Using the triangle inequality to accelerate k-means.</em>
-   In Proc. ICML, 2003.
-
- */
 /* ================================================================ */
 #ifndef VL_KMEANS_INSTANTIATING
 
@@ -191,6 +390,7 @@ vl_kmeans_reset (VlKMeans * self)
 
   if (self->centers) vl_free(self->centers) ;
   if (self->centerDistances) vl_free(self->centerDistances) ;
+
   self->centers = NULL ;
   self->centerDistances = NULL ;
 }
@@ -206,21 +406,21 @@ VL_EXPORT VlKMeans *
 vl_kmeans_new (vl_type dataType,
                VlVectorComparisonType distance)
 {
-  VlKMeans * self = vl_malloc(sizeof(VlKMeans)) ;
+  VlKMeans * self = vl_calloc(1, sizeof(VlKMeans)) ;
 
-  self->algorithm = VlKMeansLLoyd ;
+  self->algorithm = VlKMeansLloyd ;
   self->distance = distance ;
   self->dataType = dataType ;
-
   self->verbosity = 0 ;
   self->maxNumIterations = 100 ;
+  self->minEnergyVariation = 1e-4 ;
   self->numRepetitions = 1 ;
-
   self->centers = NULL ;
   self->centerDistances = NULL ;
+  self->numTrees = 3;
+  self->maxNumComparisons = 100;
 
   vl_kmeans_reset (self) ;
-
   return self ;
 }
 
@@ -247,6 +447,9 @@ vl_kmeans_new_copy (VlKMeans const * kmeans)
   self->numCenters = kmeans->numCenters ;
   self->centers = NULL ;
   self->centerDistances = NULL ;
+
+  self->numTrees = kmeans->numTrees;
+  self->maxNumComparisons = kmeans->maxNumComparisons;
 
   if (kmeans->centers) {
     vl_size dataSize = vl_get_type_size(self->dataType) * self->dimension * self->numCenters ;
@@ -279,12 +482,12 @@ vl_kmeans_delete (VlKMeans * self)
 }
 
 /* an helper structure */
-typedef struct _VlKMeansSortWrapper
-{
+typedef struct _VlKMeansSortWrapper {
   vl_uint32 * permutation ;
   void const * data ;
   vl_size stride ;
 } VlKMeansSortWrapper ;
+
 
 /* ---------------------------------------------------------------- */
 /* Instantiate shuffle algorithm */
@@ -322,7 +525,7 @@ VL_XCAT(_vl_kmeans_set_centers_, SFX)
 /* ---------------------------------------------------------------- */
 
 static void
-VL_XCAT(_vl_kmeans_seed_centers_with_rand_data_, SFX)
+VL_XCAT(_vl_kmeans_init_centers_with_rand_data_, SFX)
 (VlKMeans * self,
  TYPE const * data,
  vl_size dimension,
@@ -357,11 +560,13 @@ VL_XCAT(_vl_kmeans_seed_centers_with_rand_data_, SFX)
       if (numCenters - k < numData - i) {
         vl_bool duplicateDetected = VL_FALSE ;
         VL_XCAT(vl_eval_vector_comparison_on_all_pairs_, SFX)(distances,
-                                                              dimension,
-                                                              data + dimension * perm[i], 1,
-                                                              (TYPE*)self->centers, k,
-                                                              distFn) ;
-        for (j = 0 ; j < k ; ++j) { duplicateDetected |= (distances[j] == 0) ; }
+            dimension,
+            data + dimension * perm[i], 1,
+            (TYPE*)self->centers, k,
+            distFn) ;
+        for (j = 0 ; j < k ; ++j) {
+          duplicateDetected |= (distances[j] == 0) ;
+        }
         if (duplicateDetected) continue ;
       }
 
@@ -381,7 +586,7 @@ VL_XCAT(_vl_kmeans_seed_centers_with_rand_data_, SFX)
 /* ---------------------------------------------------------------- */
 
 static void
-VL_XCAT(_vl_kmeans_seed_centers_plus_plus_, SFX)
+VL_XCAT(_vl_kmeans_init_centers_plus_plus_, SFX)
 (VlKMeans * self,
  TYPE const * data,
  vl_size dimension,
@@ -455,32 +660,114 @@ VL_XCAT(_vl_kmeans_quantize_, SFX)
  TYPE const * data,
  vl_size numData)
 {
-  vl_uindex i ;
+  vl_index i ;
+
 #if (FLT == VL_TYPE_FLOAT)
   VlFloatVectorComparisonFunction distFn = vl_get_vector_comparison_function_f(self->distance) ;
 #else
   VlDoubleVectorComparisonFunction distFn = vl_get_vector_comparison_function_d(self->distance) ;
 #endif
-  TYPE * distanceToCenters = vl_malloc (sizeof(TYPE) * self->numCenters) ;
 
-  for (i = 0 ; i < numData ; ++i) {
-    vl_size k ;
-    TYPE bestDistance = (TYPE) VL_INFINITY_D ;
-    VL_XCAT(vl_eval_vector_comparison_on_all_pairs_, SFX)(distanceToCenters,
-                                                          self->dimension,
-                                                          data + self->dimension * i, 1,
-                                                          (TYPE*)self->centers, self->numCenters,
-                                                          distFn) ;
-    for (k = 0 ; k < self->numCenters ; ++k) {
-      if (distanceToCenters[k] < bestDistance) {
-        bestDistance = distanceToCenters[k] ;
-        assignments[i] = k ;
+#ifdef _OPENMP
+#pragma omp parallel default(none) \
+            shared(self, distances, assignments, numData, distFn, data) \
+            num_threads(vl_get_max_threads())
+#endif
+  {
+    /* vl_malloc cannot be used here if mapped to MATLAB malloc */
+    TYPE * distanceToCenters = malloc(sizeof(TYPE) * self->numCenters) ;
+
+#ifdef _OPENMP
+#pragma omp for
+#endif
+    for (i = 0 ; i < (signed)numData ; ++i) {
+      vl_uindex k ;
+      TYPE bestDistance = (TYPE) VL_INFINITY_D ;
+      VL_XCAT(vl_eval_vector_comparison_on_all_pairs_, SFX)(distanceToCenters,
+                                                            self->dimension,
+                                                            data + self->dimension * i, 1,
+                                                            (TYPE*)self->centers, self->numCenters,
+                                                            distFn) ;
+      for (k = 0 ; k < self->numCenters ; ++k) {
+        if (distanceToCenters[k] < bestDistance) {
+          bestDistance = distanceToCenters[k] ;
+          assignments[i] = (vl_uint32)k ;
+        }
       }
+      if (distances) distances[i] = bestDistance ;
     }
 
-    if (distances) distances[i] = bestDistance ;
+    free(distanceToCenters) ;
   }
-  vl_free(distanceToCenters) ;
+}
+
+/* ---------------------------------------------------------------- */
+/*                                                 ANN quantization */
+/* ---------------------------------------------------------------- */
+
+static void
+VL_XCAT(_vl_kmeans_quantize_ann_, SFX)
+(VlKMeans * self,
+ vl_uint32 * assignments,
+ TYPE * distances,
+ TYPE const * data,
+ vl_size numData,
+ vl_bool update)
+{
+#if (FLT == VL_TYPE_FLOAT)
+  VlFloatVectorComparisonFunction distFn = vl_get_vector_comparison_function_f(self->distance) ;
+#else
+  VlDoubleVectorComparisonFunction distFn = vl_get_vector_comparison_function_d(self->distance) ;
+#endif
+
+  VlKDForest * forest = vl_kdforest_new(self->dataType,self->dimension,self->numTrees, self->distance) ;
+  vl_kdforest_set_max_num_comparisons(forest,self->maxNumComparisons);
+  vl_kdforest_set_thresholding_method(forest,VL_KDTREE_MEDIAN);
+  vl_kdforest_build(forest,self->numCenters,self->centers);
+
+#ifdef _OPENMP
+#pragma omp parallel default(none) \
+  num_threads(vl_get_max_threads()) \
+  shared(self, forest, update, assignments, distances, data, numData, distFn)
+#endif
+  {
+    VlKDForestNeighbor neighbor ;
+    VlKDForestSearcher * searcher ;
+    vl_index x;
+
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+    searcher = vl_kdforest_new_searcher (forest) ;
+
+#ifdef _OPENMP
+#pragma omp for
+#endif
+    for(x = 0 ; x < (signed)numData ; ++x) {
+      vl_kdforestsearcher_query (searcher, &neighbor, 1, (TYPE const *) (data + x*self->dimension));
+
+      if (distances) {
+        if(!update) {
+          distances[x] = (TYPE) neighbor.distance;
+          assignments[x] = (vl_uint32) neighbor.index ;
+        } else {
+          TYPE prevDist = (TYPE) distFn(self->dimension,
+                                        data + self->dimension * x,
+                                        (TYPE*)self->centers + self->dimension *assignments[x]);
+          if (prevDist > (TYPE) neighbor.distance) {
+            distances[x] = (TYPE) neighbor.distance ;
+            assignments[x] = (vl_uint32) neighbor.index ;
+          } else {
+            distances[x] = prevDist ;
+          }
+        }
+      } else {
+        assignments[x] = (vl_uint32) neighbor.index ;
+      }
+    } /* end for */
+  } /* end of parallel region */
+
+  vl_kdforest_delete(forest);
 }
 
 /* ---------------------------------------------------------------- */
@@ -496,9 +783,9 @@ VL_XCAT3(_vl_kmeans_, SFX, _qsort_cmp)
 (VlKMeansSortWrapper * array, vl_uindex indexA, vl_uindex indexB)
 {
   return
-  ((TYPE*)array->data) [array->permutation[indexA] * array->stride]
-  -
-  ((TYPE*)array->data) [array->permutation[indexB] * array->stride] ;
+    ((TYPE*)array->data) [array->permutation[indexA] * array->stride]
+    -
+    ((TYPE*)array->data) [array->permutation[indexB] * array->stride] ;
 }
 
 VL_INLINE void
@@ -527,7 +814,9 @@ VL_XCAT(_vl_kmeans_sort_data_helper_, SFX)
     array.permutation = permutations + d * numData ;
     array.data = data + d ;
     array.stride = self->dimension ;
-    for (x = 0 ; x < numData ; ++x) { array.permutation[x] = x ; }
+    for (x = 0 ; x < numData ; ++x) {
+      array.permutation[x] = (vl_uint32)x ;
+    }
     VL_XCAT3(_vl_kmeans_, SFX, _qsort_sort)(&array, numData) ;
   }
 }
@@ -543,14 +832,18 @@ VL_XCAT(_vl_kmeans_refine_centers_lloyd_, SFX)
  vl_size numData)
 {
   vl_size c, d, x, iteration ;
-  vl_bool allDone ;
   double previousEnergy = VL_INFINITY_D ;
+  double initialEnergy = VL_INFINITY_D ;
   double energy ;
   TYPE * distances = vl_malloc (sizeof(TYPE) * numData) ;
+
   vl_uint32 * assignments = vl_malloc (sizeof(vl_uint32) * numData) ;
   vl_size * clusterMasses = vl_malloc (sizeof(vl_size) * numData) ;
   vl_uint32 * permutations = NULL ;
   vl_size * numSeenSoFar = NULL ;
+  VlRand * rand = vl_get_rand () ;
+  vl_size totNumRestartedCenters = 0 ;
+  vl_size numRestartedCenters = 0 ;
 
   if (self->distance == VlDistanceL1) {
     permutations = vl_malloc(sizeof(vl_uint32) * numData * self->dimension) ;
@@ -559,8 +852,7 @@ VL_XCAT(_vl_kmeans_refine_centers_lloyd_, SFX)
   }
 
   for (energy = VL_INFINITY_D,
-       iteration = 0,
-       allDone = VL_FALSE ;
+       iteration = 0;
        1 ;
        ++ iteration) {
 
@@ -588,7 +880,19 @@ VL_XCAT(_vl_kmeans_refine_centers_lloyd_, SFX)
       }
       break ;
     }
-
+    
+    if (iteration == 0) {
+      initialEnergy = energy ;
+    } else {
+      double eps = (previousEnergy - energy) / (initialEnergy - energy) ;
+      if (eps < self->minEnergyVariation) {
+        if (self->verbosity) {
+          VL_PRINTF("kmeans: ANN terminating because the energy relative variation was less than %f\n", self->minEnergyVariation) ;
+        }
+        break ;
+      }
+    }
+    
     /* begin next iteration */
     previousEnergy = energy ;
 
@@ -598,18 +902,31 @@ VL_XCAT(_vl_kmeans_refine_centers_lloyd_, SFX)
       clusterMasses[assignments[x]] ++ ;
     }
 
+    numRestartedCenters = 0 ;
     switch (self->distance) {
       case VlDistanceL2:
         memset(self->centers, 0, sizeof(TYPE) * self->dimension * self->numCenters) ;
         for (x = 0 ; x < numData ; ++x) {
           TYPE * cpt = (TYPE*)self->centers + assignments[x] * self->dimension ;
           TYPE const * xpt = data + x * self->dimension ;
-          for (d = 0 ; d < self->dimension ; ++d) { cpt[d] += xpt[d] ; }
+          for (d = 0 ; d < self->dimension ; ++d) {
+            cpt[d] += xpt[d] ;
+          }
         }
         for (c = 0 ; c < self->numCenters ; ++c) {
-          TYPE mass = clusterMasses[c] ;
           TYPE * cpt = (TYPE*)self->centers + c * self->dimension ;
-          for (d = 0 ; d < self->dimension ; ++d) { cpt[d] /= mass ; }
+          if (clusterMasses[c] > 0) {
+            TYPE mass = clusterMasses[c] ;
+            for (d = 0 ; d < self->dimension ; ++d) {
+              cpt[d] /= mass ;
+            }
+          } else {
+            vl_uindex x = vl_rand_uindex(rand, numData) ;
+            numRestartedCenters ++ ;
+            for (d = 0 ; d < self->dimension ; ++d) {
+              cpt[d] = data[x * self->dimension + d] ;
+            }
+          }
         }
         break ;
       case VlDistanceL1:
@@ -620,28 +937,45 @@ VL_XCAT(_vl_kmeans_refine_centers_lloyd_, SFX)
             c = assignments[perm[x]] ;
             if (2 * numSeenSoFar[c] < clusterMasses[c]) {
               ((TYPE*)self->centers) [d + c * self->dimension] =
-              data [d + perm[x] * self->dimension] ;
+                data [d + perm[x] * self->dimension] ;
             }
             numSeenSoFar[c] ++ ;
+          }
+          /* restart the centers as required  */
+          for (c = 0 ; c < self->numCenters ; ++c) {
+            if (clusterMasses[c] == 0) {
+              TYPE * cpt = (TYPE*)self->centers + c * self->dimension ;
+              vl_uindex x = vl_rand_uindex(rand, numData) ;
+              numRestartedCenters ++ ;
+              for (d = 0 ; d < self->dimension ; ++d) {
+                cpt[d] = data[x * self->dimension + d] ;
+              }
+            }
           }
         }
         break ;
       default:
         abort();
     } /* done compute centers */
+
+    totNumRestartedCenters += numRestartedCenters ;
+    if (self->verbosity && numRestartedCenters) {
+      VL_PRINTF("kmeans: Lloyd iter %d: restarted %d centers\n", iteration,
+                numRestartedCenters) ;
+    }
   } /* next Lloyd iteration */
 
-  if (permutations) { vl_free(permutations) ; }
-  if (numSeenSoFar) { vl_free(numSeenSoFar) ; }
+  if (permutations) {
+    vl_free(permutations) ;
+  }
+  if (numSeenSoFar) {
+    vl_free(numSeenSoFar) ;
+  }
   vl_free(distances) ;
   vl_free(assignments) ;
   vl_free(clusterMasses) ;
   return energy ;
 }
-
-/* ---------------------------------------------------------------- */
-/*                                                 Elkan refinement */
-/* ---------------------------------------------------------------- */
 
 static double
 VL_XCAT(_vl_kmeans_update_center_distances_, SFX)
@@ -659,14 +993,171 @@ VL_XCAT(_vl_kmeans_update_center_distances_, SFX)
                                        self->numCenters) ;
   }
   VL_XCAT(vl_eval_vector_comparison_on_all_pairs_, SFX)(self->centerDistances,
-                                                        self->dimension,
-                                                        self->centers, self->numCenters,
-                                                        NULL, 0,
-                                                        distFn) ;
+      self->dimension,
+      self->centers, self->numCenters,
+      NULL, 0,
+      distFn) ;
   return self->numCenters * (self->numCenters - 1) / 2 ;
 }
 
+static double
+VL_XCAT(_vl_kmeans_refine_centers_ann_, SFX)
+(VlKMeans * self,
+ TYPE const * data,
+ vl_size numData)
+{
+  vl_size c, d, x, iteration ;
+  double initialEnergy = VL_INFINITY_D ;
+  double previousEnergy = VL_INFINITY_D ;
+  double energy ;
 
+  vl_uint32 * permutations = NULL ;
+  vl_size * numSeenSoFar = NULL ;
+  VlRand * rand = vl_get_rand () ;
+  vl_size totNumRestartedCenters = 0 ;
+  vl_size numRestartedCenters = 0 ;
+
+  vl_uint32 * assignments = vl_malloc (sizeof(vl_uint32) * numData) ;
+  vl_size * clusterMasses = vl_malloc (sizeof(vl_size) * numData) ;
+  TYPE * distances = vl_malloc (sizeof(TYPE) * numData) ;
+
+  if (self->distance == VlDistanceL1) {
+    permutations = vl_malloc(sizeof(vl_uint32) * numData * self->dimension) ;
+    numSeenSoFar = vl_malloc(sizeof(vl_size) * self->numCenters) ;
+    VL_XCAT(_vl_kmeans_sort_data_helper_, SFX)(self, permutations, data, numData) ;
+  }
+
+  for (energy = VL_INFINITY_D,
+       iteration = 0;
+       1 ;
+       ++ iteration) {
+
+    /* assign data to cluters */
+    VL_XCAT(_vl_kmeans_quantize_ann_, SFX)(self, assignments, distances, data, numData, iteration > 0) ;
+
+    /* compute energy */
+    energy = 0 ;
+    for (x = 0 ; x < numData ; ++x) energy += distances[x] ;
+    if (self->verbosity) {
+      VL_PRINTF("kmeans: ANN iter %d: energy = %g\n", iteration,
+                energy) ;
+    }
+
+    /* check termination conditions */
+    if (iteration >= self->maxNumIterations) {
+      if (self->verbosity) {
+        VL_PRINTF("kmeans: ANN terminating because the maximum number of iterations has been reached\n") ;
+      }
+      break ;
+    }
+    if (energy == previousEnergy) {
+      if (self->verbosity) {
+        VL_PRINTF("kmeans: ANN terminating because the algorithm fully converged\n") ;
+      }
+      break ;
+    }
+    
+    if (iteration == 0) {
+      initialEnergy = energy ;
+    } else {
+      double eps = (previousEnergy - energy) / (initialEnergy - energy) ;
+      if (eps < self->minEnergyVariation) {
+        if (self->verbosity) {
+          VL_PRINTF("kmeans: ANN terminating because the energy relative variation was less than %f\n", self->minEnergyVariation) ;
+        }
+        break ;
+      }
+    }
+
+    /* begin next iteration */
+    previousEnergy = energy ;
+
+    /* update clusters */
+    memset(clusterMasses, 0, sizeof(vl_size) * numData) ;
+    for (x = 0 ; x < numData ; ++x) {
+      clusterMasses[assignments[x]] ++ ;
+    }
+
+    numRestartedCenters = 0 ;
+    switch (self->distance) {
+      case VlDistanceL2:
+        memset(self->centers, 0, sizeof(TYPE) * self->dimension * self->numCenters) ;
+        for (x = 0 ; x < numData ; ++x) {
+          TYPE * cpt = (TYPE*)self->centers + assignments[x] * self->dimension ;
+          TYPE const * xpt = data + x * self->dimension ;
+          for (d = 0 ; d < self->dimension ; ++d) {
+            cpt[d] += xpt[d] ;
+          }
+        }
+        for (c = 0 ; c < self->numCenters ; ++c) {
+          TYPE * cpt = (TYPE*)self->centers + c * self->dimension ;
+          if (clusterMasses[c] > 0) {
+            TYPE mass = clusterMasses[c] ;
+            for (d = 0 ; d < self->dimension ; ++d) {
+              cpt[d] /= mass ;
+            }
+          } else {
+            vl_uindex x = vl_rand_uindex(rand, numData) ;
+            numRestartedCenters ++ ;
+            for (d = 0 ; d < self->dimension ; ++d) {
+              cpt[d] = data[x * self->dimension + d] ;
+            }
+          }
+        }
+        break ;
+      case VlDistanceL1:
+        for (d = 0 ; d < self->dimension ; ++d) {
+          vl_uint32 * perm = permutations + d * numData ;
+          memset(numSeenSoFar, 0, sizeof(vl_size) * self->numCenters) ;
+          for (x = 0; x < numData ; ++x) {
+            c = assignments[perm[x]] ;
+            if (2 * numSeenSoFar[c] < clusterMasses[c]) {
+              ((TYPE*)self->centers) [d + c * self->dimension] =
+                data [d + perm[x] * self->dimension] ;
+            }
+            numSeenSoFar[c] ++ ;
+          }
+          /* restart the centers as required  */
+          for (c = 0 ; c < self->numCenters ; ++c) {
+            if (clusterMasses[c] == 0) {
+              TYPE * cpt = (TYPE*)self->centers + c * self->dimension ;
+              vl_uindex x = vl_rand_uindex(rand, numData) ;
+              numRestartedCenters ++ ;
+              for (d = 0 ; d < self->dimension ; ++d) {
+                cpt[d] = data[x * self->dimension + d] ;
+              }
+            }
+          }
+        }
+        break ;
+      default:
+        VL_PRINT("bad distance set: %d\n",self->distance);
+        abort();
+    } /* done compute centers */
+
+    totNumRestartedCenters += numRestartedCenters ;
+    if (self->verbosity && numRestartedCenters) {
+      VL_PRINTF("kmeans: ANN iter %d: restarted %d centers\n", iteration,
+                numRestartedCenters) ;
+    }
+  }
+
+  if (permutations) {
+    vl_free(permutations) ;
+  }
+  if (numSeenSoFar) {
+    vl_free(numSeenSoFar) ;
+  }
+
+  vl_free(distances) ;
+  vl_free(assignments) ;
+  vl_free(clusterMasses) ;
+  return energy ;
+}
+
+/* ---------------------------------------------------------------- */
+/*                                                 Elkan refinement */
+/* ---------------------------------------------------------------- */
 
 static double
 VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
@@ -674,17 +1165,19 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
  TYPE const * data,
  vl_size numData)
 {
-  vl_size d, iteration, x ;
+  vl_size d, iteration ;
+  vl_index x ;
   vl_uint32 c, j ;
   vl_bool allDone ;
   TYPE * distances = vl_malloc (sizeof(TYPE) * numData) ;
   vl_uint32 * assignments = vl_malloc (sizeof(vl_uint32) * numData) ;
   vl_size * clusterMasses = vl_malloc (sizeof(vl_size) * numData) ;
+  VlRand * rand = vl_get_rand () ;
 
 #if (FLT == VL_TYPE_FLOAT)
-    VlFloatVectorComparisonFunction distFn = vl_get_vector_comparison_function_f(self->distance) ;
+  VlFloatVectorComparisonFunction distFn = vl_get_vector_comparison_function_f(self->distance) ;
 #else
-    VlDoubleVectorComparisonFunction distFn = vl_get_vector_comparison_function_d(self->distance) ;
+  VlDoubleVectorComparisonFunction distFn = vl_get_vector_comparison_function_d(self->distance) ;
 #endif
 
   TYPE * nextCenterDistances = vl_malloc (sizeof(TYPE) * self->numCenters) ;
@@ -705,6 +1198,7 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
   vl_size totDistanceComputationsToRefreshCenterDistances = 0 ;
   vl_size totDistanceComputationsToNewCenters = 0 ;
   vl_size totDistanceComputationsToFinalize = 0 ;
+  vl_size totNumRestartedCenters = 0 ;
 
   if (self->distance == VlDistanceL1) {
     permutations = vl_malloc(sizeof(vl_uint32) * numData * self->dimension) ;
@@ -717,9 +1211,9 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
   /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
   /* An iteration is: get_new_centers + reassign + get_energy.
-     This counts as iteration 0, where get_new_centers is assumed
-     to be performed before calling the train function by
-     the initialization function */
+   This counts as iteration 0, where get_new_centers is assumed
+   to be performed before calling the train function by
+   the initialization function */
 
   /* update distances between centers */
   totDistanceComputationsToInit +=
@@ -727,7 +1221,7 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
 
   /* assigmen points to the initial centers and initialize bounds */
   memset(pointToCenterLB, 0, sizeof(TYPE) * self->numCenters *  numData) ;
-  for (x = 0 ; x < numData ; ++x) {
+  for (x = 0 ; x < (signed)numData ; ++x) {
     TYPE distance ;
 
     /* do the first center */
@@ -744,7 +1238,7 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
     for (c = 1 ; c < self->numCenters ; ++c) {
 
       /* Can skip if the center assigned so far is twice as close
-         as its distance to the center under consideration */
+       as its distance to the center under consideration */
 
       if (((self->distance == VlDistanceL1) ? 2.0 : 4.0) *
           pointToClosestCenterUB[x] <=
@@ -767,7 +1261,7 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
 
   /* compute UB on energy */
   energy = 0 ;
-  for (x = 0 ; x < numData ; ++x) {
+  for (x = 0 ; x < (signed)numData ; ++x) {
     energy += pointToClosestCenterUB[x] ;
   }
 
@@ -776,10 +1270,11 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
               energy, totDistanceComputationsToInit) ;
   }
 
-/* #define SANITY*/
+  /* #define SANITY*/
 #ifdef SANITY
   {
-    int xx ; int cc ;
+    int xx ;
+    int cc ;
     TYPE tol = 1e-5 ;
     VL_PRINTF("inconsistencies after initial assignments:\n");
     for (xx = 0 ; xx < numData ; ++xx) {
@@ -791,10 +1286,10 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
         if (cc == assignments[xx]) {
           TYPE z = pointToClosestCenterUB[xx] ;
           if (z+tol<b) VL_PRINTF("UB %d %d = %f < %f\n",
-                             cc, xx, z, b) ;
+                                 cc, xx, z, b) ;
         }
         if (a>b+tol) VL_PRINTF("LB %d %d = %f  > %f\n",
-                           cc, xx, a, b) ;
+                               cc, xx, a, b) ;
       }
     }
   }
@@ -810,41 +1305,66 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
     vl_size numDistanceComputationsToRefreshLB = 0 ;
     vl_size numDistanceComputationsToRefreshCenterDistances = 0 ;
     vl_size numDistanceComputationsToNewCenters = 0 ;
+    vl_size numRestartedCenters = 0 ;
 
     /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
     /*                         Compute new centers                  */
     /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
     memset(clusterMasses, 0, sizeof(vl_size) * numData) ;
-    for (x = 0 ; x < numData ; ++x) {
+    for (x = 0 ; x < (signed)numData ; ++x) {
       clusterMasses[assignments[x]] ++ ;
     }
 
     switch (self->distance) {
       case VlDistanceL2:
         memset(newCenters, 0, sizeof(TYPE) * self->dimension * self->numCenters) ;
-        for (x = 0 ; x < numData ; ++x) {
+        for (x = 0 ; x < (signed)numData ; ++x) {
           TYPE * cpt = newCenters + assignments[x] * self->dimension ;
           TYPE const * xpt = data + x * self->dimension ;
-          for (d = 0 ; d < self->dimension ; ++d) { cpt[d] += xpt[d] ; }
+          for (d = 0 ; d < self->dimension ; ++d) {
+            cpt[d] += xpt[d] ;
+          }
         }
         for (c = 0 ; c < self->numCenters ; ++c) {
-          TYPE mass = clusterMasses[c] ;
           TYPE * cpt = newCenters + c * self->dimension ;
-          for (d = 0 ; d < self->dimension ; ++d) { cpt[d] /= mass ; }
+          if (clusterMasses[c] > 0) {
+            TYPE mass = clusterMasses[c] ;
+            for (d = 0 ; d < self->dimension ; ++d) {
+              cpt[d] /= mass ;
+            }
+          } else {
+            /* restart the center */
+            vl_uindex x = vl_rand_uindex(rand, numData) ;
+            numRestartedCenters ++ ;
+            for (d = 0 ; d < self->dimension ; ++d) {
+              cpt[d] = data[x * self->dimension + d] ;
+            }
+          }
         }
         break ;
       case VlDistanceL1:
         for (d = 0 ; d < self->dimension ; ++d) {
           vl_uint32 * perm = permutations + d * numData ;
           memset(numSeenSoFar, 0, sizeof(vl_size) * self->numCenters) ;
-          for (x = 0; x < numData ; ++x) {
+          for (x = 0; x < (signed)numData ; ++x) {
             c = assignments[perm[x]] ;
             if (2 * numSeenSoFar[c] < clusterMasses[c]) {
               newCenters [d + c * self->dimension] =
               data [d + perm[x] * self->dimension] ;
             }
             numSeenSoFar[c] ++ ;
+          }
+        }
+        /* restart the centers as required  */
+        for (c = 0 ; c < self->numCenters ; ++c) {
+          if (clusterMasses[c] == 0) {
+            TYPE * cpt = newCenters + c * self->dimension ;
+            vl_uindex x = vl_rand_uindex(rand, numData) ;
+            numRestartedCenters ++ ;
+            for (d = 0 ; d < self->dimension ; ++d) {
+              cpt[d] = data[x * self->dimension + d] ;
+            }
           }
         }
         break ;
@@ -892,7 +1412,7 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
      Update upper bounds on point-to-closest-center distances
      based on the center variation.
      */
-    for (x = 0 ; x < numData ; ++x) {
+    for (x = 0 ; x < (signed)numData ; ++x) {
       TYPE a = pointToClosestCenterUB[x] ;
       TYPE b = centerToNewCenterDistances[assignments[x]] ;
       if (self->distance == VlDistanceL1) {
@@ -912,7 +1432,11 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
      Update lower bounds on point-to-center distances
      based on the center variation.
      */
-    for (x = 0 ; x < numData ; ++x) {
+
+#if defined(_OPENMP)
+#pragma omp parallel for default(shared) private(x,c) num_threads(vl_get_max_threads())
+#endif
+    for (x = 0 ; x < (signed)numData ; ++x) {
       for (c = 0 ; c < self->numCenters ; ++c) {
         TYPE a = pointToCenterLB[c + x * self->numCenters] ;
         TYPE b = centerToNewCenterDistances[c] ;
@@ -920,22 +1444,23 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
           pointToCenterLB[c + x * self->numCenters] = 0 ;
         } else {
           if (self->distance == VlDistanceL1) {
-             pointToCenterLB[c + x * self->numCenters]  = a - b ;
+            pointToCenterLB[c + x * self->numCenters]  = a - b ;
           } else {
 #if (FLT == VL_TYPE_FLOAT)
             TYPE sqrtab =  sqrtf (a * b) ;
 #else
             TYPE sqrtab =  sqrt (a * b) ;
 #endif
-             pointToCenterLB[c + x * self->numCenters]  = a + b - 2.0 * sqrtab ;
+            pointToCenterLB[c + x * self->numCenters]  = a + b - 2.0 * sqrtab ;
           }
         }
       }
     }
 
-   #ifdef SANITY
+#ifdef SANITY
     {
-      int xx ; int cc ;
+      int xx ;
+      int cc ;
       TYPE tol = 1e-5 ;
       VL_PRINTF("inconsistencies before assignments:\n");
       for (xx = 0 ; xx < numData ; ++xx) {
@@ -947,20 +1472,33 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
           if (cc == assignments[xx]) {
             TYPE z = pointToClosestCenterUB[xx] ;
             if (z+tol<b) VL_PRINTF("UB %d %d = %f < %f\n",
-                                            cc, xx, z, b) ;
+                                   cc, xx, z, b) ;
           }
           if (a>b+tol) VL_PRINTF("LB %d %d = %f  > %f (assign = %d)\n",
-                                          cc, xx, a, b, assignments[xx]) ;
+                                 cc, xx, a, b, assignments[xx]) ;
         }
       }
     }
 #endif
 
     /*
-     Scan the data and to the reassignments. Use the bounds to
+     Scan the data and do the reassignments. Use the bounds to
      skip as many point-to-center distance calculations as possible.
      */
-    for (allDone = VL_TRUE, x = 0 ; x < numData ; ++x) {
+    allDone = VL_TRUE ;
+
+#if defined(_OPENMP)
+#pragma omp parallel for \
+            default(none) \
+            shared(self,numData, \
+              pointToClosestCenterUB,pointToCenterLB, \
+              nextCenterDistances,pointToClosestCenterUBIsStrict, \
+              assignments,data,distFn,allDone) \
+            private(c,x) \
+            reduction(+:numDistanceComputationsToRefreshUB,numDistanceComputationsToRefreshLB) \
+            num_threads(vl_get_max_threads())
+#endif
+    for (x = 0 ; x < (signed)numData ; ++ x) {
       /*
        A point x sticks with its current center assignmets[x]
        the UB to d(x, c[assigmnets[x]]) is not larger than half
@@ -980,9 +1518,9 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
 
          0 - c is already the assigned center
          1 - The UB of d(x, c[assignments[x]]) is smaller than half
-             the distance of c[assigments[x]] to c, OR
+         the distance of c[assigments[x]] to c, OR
          2 - The UB of d(x, c[assignmets[x]]) is smaller than the
-             LB of the distance of x to c.
+         LB of the distance of x to c.
          */
         if (cx == c) {
           continue ;
@@ -1040,6 +1578,7 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
       } /* assign center */
     } /* next data point */
 
+
     totDistanceComputationsToRefreshUB
     += numDistanceComputationsToRefreshUB ;
 
@@ -1052,9 +1591,13 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
     totDistanceComputationsToNewCenters
     += numDistanceComputationsToNewCenters ;
 
+    totNumRestartedCenters
+    += numRestartedCenters ;
+
 #ifdef SANITY
     {
-      int xx ; int cc ;
+      int xx ;
+      int cc ;
       TYPE tol = 1e-5 ;
       VL_PRINTF("inconsistencies after assignments:\n");
       for (xx = 0 ; xx < numData ; ++xx) {
@@ -1066,10 +1609,10 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
           if (cc == assignments[xx]) {
             TYPE z = pointToClosestCenterUB[xx] ;
             if (z+tol<b) VL_PRINTF("UB %d %d = %f < %f\n",
-                               cc, xx, z, b) ;
+                                   cc, xx, z, b) ;
           }
           if (a>b+tol) VL_PRINTF("LB %d %d = %f  > %f (assign = %d)\n",
-                             cc, xx, a, b, assignments[xx]) ;
+                                 cc, xx, a, b, assignments[xx]) ;
         }
       }
     }
@@ -1077,7 +1620,7 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
 
     /* compute UB on energy */
     energy = 0 ;
-    for (x = 0 ; x < numData ; ++x) {
+    for (x = 0 ; x < (signed)numData ; ++x) {
       energy += pointToClosestCenterUB[x] ;
     }
 
@@ -1091,6 +1634,12 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
                 iteration,
                 energy,
                 numDistanceComputations) ;
+      if (numRestartedCenters) {
+        VL_PRINTF("kmeans: Elkan iter %d: restarted %d centers\n",
+                  iteration,
+                  energy,
+                  numRestartedCenters) ;
+      }
       if (self->verbosity > 1) {
         VL_PRINTF("kmeans: Elkan iter %d: total dist. calc. per type: "
                   "UB: %.1f%% (%d), LB: %.1f%% (%d), "
@@ -1124,10 +1673,9 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
 
   } /* next Elkan iteration */
 
-
   /* compute true energy */
   energy = 0 ;
-  for (x = 0 ; x < numData ; ++ x) {
+  for (x = 0 ; x < (signed)numData ; ++ x) {
     vl_uindex cx = assignments [x] ;
     energy += distFn(self->dimension,
                      data + self->dimension * x,
@@ -1150,6 +1698,10 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
     if (self->verbosity) {
       VL_PRINTF("kmeans: Elkan: total dist. calc.: %d (%.2f %% of Lloyd)\n",
                 totDistanceComputations, saving * 100.0) ;
+      if (totNumRestartedCenters) {
+        VL_PRINTF("kmeans: Elkan: there have been %d restarts\n",
+                  totNumRestartedCenters) ;
+      }
     }
 
     if (self->verbosity > 1) {
@@ -1173,8 +1725,12 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
     }
   }
 
-  if (permutations) { vl_free(permutations) ; }
-  if (numSeenSoFar) { vl_free(numSeenSoFar) ; }
+  if (permutations) {
+    vl_free(permutations) ;
+  }
+  if (numSeenSoFar) {
+    vl_free(numSeenSoFar) ;
+  }
 
   vl_free(distances) ;
   vl_free(assignments) ;
@@ -1198,13 +1754,17 @@ VL_XCAT(_vl_kmeans_refine_centers_, SFX)
  vl_size numData)
 {
   switch (self->algorithm) {
-    case VlKMeansLLoyd:
+    case VlKMeansLloyd:
       return
-      VL_XCAT(_vl_kmeans_refine_centers_lloyd_, SFX)(self, data, numData) ;
+        VL_XCAT(_vl_kmeans_refine_centers_lloyd_, SFX)(self, data, numData) ;
       break ;
     case VlKMeansElkan:
       return
-      VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)(self, data, numData) ;
+        VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)(self, data, numData) ;
+      break ;
+    case VlKMeansANN:
+      return
+        VL_XCAT(_vl_kmeans_refine_centers_ann_, SFX)(self, data, numData) ;
       break ;
     default:
       abort() ;
@@ -1214,6 +1774,7 @@ VL_XCAT(_vl_kmeans_refine_centers_, SFX)
 /* VL_KMEANS_INSTANTIATING */
 #else
 
+#ifndef __DOXYGEN__
 #define FLT VL_TYPE_FLOAT
 #define TYPE float
 #define SFX f
@@ -1225,6 +1786,7 @@ VL_XCAT(_vl_kmeans_refine_centers_, SFX)
 #define SFX d
 #define VL_KMEANS_INSTANTIATING
 #include "kmeans.c"
+#endif
 
 /* VL_KMEANS_INSTANTIATING */
 #endif
@@ -1264,20 +1826,19 @@ vl_kmeans_set_centers
 }
 
 /** ------------------------------------------------------------------
- ** @brief
- ** @param self
+ ** @brief init centers by randomly sampling data
  ** @param self KMeans object.
- ** @param centers centers to copy.
+ ** @param data data to sample from.
  ** @param dimension data dimension.
  ** @param numData nmber of data points.
  ** @param numCenters number of centers.
  **
- ** The function seeds the KMeans centers by randomly sampling
+ ** The function inits the KMeans centers by randomly sampling
  ** the data @a data.
  **/
 
 VL_EXPORT void
-vl_kmeans_seed_centers_with_rand_data
+vl_kmeans_init_centers_with_rand_data
 (VlKMeans * self,
  void const * data,
  vl_size dimension,
@@ -1288,11 +1849,11 @@ vl_kmeans_seed_centers_with_rand_data
 
   switch (self->dataType) {
     case VL_TYPE_FLOAT :
-      _vl_kmeans_seed_centers_with_rand_data_f
+      _vl_kmeans_init_centers_with_rand_data_f
       (self, (float const *)data, dimension, numData, numCenters) ;
       break ;
     case VL_TYPE_DOUBLE :
-      _vl_kmeans_seed_centers_with_rand_data_d
+      _vl_kmeans_init_centers_with_rand_data_d
       (self, (double const *)data, dimension, numData, numCenters) ;
       break ;
     default:
@@ -1301,16 +1862,16 @@ vl_kmeans_seed_centers_with_rand_data
 }
 
 /** ------------------------------------------------------------------
- ** @brief
- ** @param self
- ** @param data
- ** @param dimension
- ** @param numData
- ** @param numCenters
+ ** @brief Seed centers by the KMeans++ algorithm
+ ** @param self KMeans object.
+ ** @param data data to sample from.
+ ** @param dimension data dimension.
+ ** @param numData nmber of data points.
+ ** @param numCenters number of centers.
  **/
 
 VL_EXPORT void
-vl_kmeans_seed_centers_plus_plus
+vl_kmeans_init_centers_plus_plus
 (VlKMeans * self,
  void const * data,
  vl_size dimension,
@@ -1321,11 +1882,11 @@ vl_kmeans_seed_centers_plus_plus
 
   switch (self->dataType) {
     case VL_TYPE_FLOAT :
-      _vl_kmeans_seed_centers_plus_plus_f
+      _vl_kmeans_init_centers_plus_plus_f
       (self, (float const *)data, dimension, numData, numCenters) ;
       break ;
     case VL_TYPE_DOUBLE :
-      _vl_kmeans_seed_centers_plus_plus_d
+      _vl_kmeans_init_centers_plus_plus_d
       (self, (double const *)data, dimension, numData, numCenters) ;
       break ;
     default:
@@ -1334,12 +1895,12 @@ vl_kmeans_seed_centers_plus_plus
 }
 
 /** ------------------------------------------------------------------
- ** @brief Quantize new data
+ ** @brief Quantize data
  ** @param self KMeans object.
- ** @param assignments data to centers assignments.
- ** @param distances data to closes center distance/
+ ** @param assignments data to closest center assignments (output).
+ ** @param distances data to closest center distance (output).
  ** @param data data to quantize.
- ** @param numCenters number of data to quantize.
+ ** @param numData number of data points to quantize.
  **/
 
 VL_EXPORT void
@@ -1358,6 +1919,47 @@ vl_kmeans_quantize
     case VL_TYPE_DOUBLE :
       _vl_kmeans_quantize_d
       (self, assignments, distances, (double const *)data, numData) ;
+      break ;
+    default:
+      abort() ;
+  }
+}
+
+/** ------------------------------------------------------------------
+ ** @brief Quantize data using approximate nearest neighbours (ANN).
+ ** @param self KMeans object.
+ ** @param assignments data to centers assignments (output).
+ ** @param distances data to closes center distance (output)
+ ** @param data data to quantize.
+ ** @param numData number of data points.
+ ** @param update choose wether to update current assignments.
+ **
+ ** The function uses an ANN procedure to compute the approximate
+ ** nearest neighbours of the input data point.
+ **
+ ** Setting @a update to ::VL_TRUE will cause the algorithm
+ ** to *update existing assignments*. This means that each
+ ** element of @a assignments and @a distances is updated ony if the
+ ** ANN procedure can find a better assignment of the existing one.
+ **/
+
+VL_EXPORT void
+vl_kmeans_quantize_ann
+(VlKMeans * self,
+ vl_uint32 * assignments,
+ void * distances,
+ void const * data,
+ vl_size numData,
+ vl_bool update)
+{
+  switch (self->dataType) {
+    case VL_TYPE_FLOAT :
+      _vl_kmeans_quantize_ann_f
+      (self, assignments, distances, (float const *)data, numData, update) ;
+      break ;
+    case VL_TYPE_DOUBLE :
+      _vl_kmeans_quantize_ann_d
+      (self, assignments, distances, (double const *)data, numData, update) ;
       break ;
     default:
       abort() ;
@@ -1389,12 +1991,12 @@ vl_kmeans_refine_centers
   switch (self->dataType) {
     case VL_TYPE_FLOAT :
       return
-      _vl_kmeans_refine_centers_f
-      (self, (float const *)data, numData) ;
+        _vl_kmeans_refine_centers_f
+        (self, (float const *)data, numData) ;
     case VL_TYPE_DOUBLE :
       return
-      _vl_kmeans_refine_centers_d
-      (self, (double const *)data, numData) ;
+        _vl_kmeans_refine_centers_d
+        (self, (double const *)data, numData) ;
     default:
       abort() ;
   }
@@ -1405,14 +2007,17 @@ vl_kmeans_refine_centers
  ** @brief Cluster data.
  ** @param self KMeans object.
  ** @param data data to quantize.
+ ** @param dimension data dimension.
  ** @param numData number of data points.
+ ** @param numCenters number of clusters.
  ** @return K-means energy at the end of optimization.
  **
- ** The function calls the underlying K-means quantization algorithm
- ** (@ref VlKMeansAlgorithm) to quantize the specified data @a data.
- ** The function assumes that the cluster centers have already
- ** been assigned by using one of the seeding functions, or by
- ** setting them.
+ ** The function initializes the centers by using the initialization
+ ** algorithm set by ::vl_kmeans_set_initialization and refines them
+ ** by the quantization algorithm set by ::vl_kmeans_set_algorithm.
+ ** The process is repeated one or more times (see
+ ** ::vl_kmeans_set_num_repetitions) and the resutl with smaller
+ ** energy is retained.
  **/
 
 VL_EXPORT double
@@ -1437,12 +2042,12 @@ vl_kmeans_cluster (VlKMeans * self,
     timeRef = vl_get_cpu_time() ;
     switch (self->initialization) {
       case VlKMeansRandomSelection :
-        vl_kmeans_seed_centers_with_rand_data (self,
+        vl_kmeans_init_centers_with_rand_data (self,
                                                data, dimension, numData,
                                                numCenters) ;
         break ;
       case VlKMeansPlusPlus :
-        vl_kmeans_seed_centers_plus_plus (self,
+        vl_kmeans_init_centers_plus_plus (self,
                                           data, dimension, numData,
                                           numCenters) ;
         break ;
@@ -1458,12 +2063,14 @@ vl_kmeans_cluster (VlKMeans * self,
     timeRef = vl_get_cpu_time () ;
     energy = vl_kmeans_refine_centers (self, data, numData) ;
     if (self->verbosity) {
-      VL_PRINTF("kmeans: K-means termineted in %.2f s with energy %g\n",
+      VL_PRINTF("kmeans: K-means terminated in %.2f s with energy %g\n",
                 vl_get_cpu_time() - timeRef, energy) ;
     }
 
     /* copy centers to output if current solution is optimal */
-    if (energy < bestEnergy) {
+    /* check repetition == 0 as well in case energy = NaN, which */
+    /* can happen if the data contain NaNs */
+    if (energy < bestEnergy || repetition == 0) {
       void * temp ;
       bestEnergy = energy ;
 

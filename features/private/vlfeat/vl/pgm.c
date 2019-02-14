@@ -1,13 +1,15 @@
-/** @file    pgm.c
- ** @brief   Portable graymap format (PGM) parser - Definition
- ** @author  Andrea Vedaldi
+/** @file pgm.c
+ ** @brief Portable graymap format (PGM) parser - Definition
+ ** @author Andrea Vedaldi
  **/
 
-/* AUTORIGHTS
-Copyright (C) 2007-10 Andrea Vedaldi and Brian Fulkerson
+/*
+Copyright (C) 2007-12 Andrea Vedaldi and Brian Fulkerson.
+Copyright (C) 2013 Andrea Vedaldi.
+All rights reserved.
 
-This file is part of VLFeat, available under the terms of the
-GNU GPLv2, or (at your option) any later version.
+This file is part of the VLFeat library and is made available under
+the terms of the BSD license (see the COPYING file).
 */
 
 /** @file pgm.h
@@ -41,8 +43,7 @@ buffer in floating point format use ::vl_pgm_read_new_f() and
 #include <string.h>
 
 /** ------------------------------------------------------------------
- ** @internal
- ** @brief Remove all characters to the next new-line
+ ** @internal @brief Remove all characters to the next new-line.
  ** @param f file to strip.
  ** @return number of characters removed.
  **/
@@ -71,8 +72,7 @@ remove_line(FILE* f)
 }
 
 /** ------------------------------------------------------------------
- ** @internal
- ** @brief Remove white-spaces and comments
+ ** @internal @brief Remove white-spaces and comments.
  ** @param f file to strip.
  ** @return number of characters removed.
  **/
@@ -111,72 +111,63 @@ remove_blanks(FILE* f)
 
 /** ------------------------------------------------------------------
  ** @brief Get PGM image number of pixels.
- **
  ** @param im PGM image descriptor.
+ ** @return number of pixels of the image.
  **
  ** The functions returns the number of pixels of the PGM image @a im.
  **
  ** To calculate the image data size in bytes, this value must be
  ** multiplied by the number of byte per pixels (see
  ** ::vl_pgm_get_bpp()).
- **
- ** @return number of pixels of the image.
  **/
 
-VL_EXPORT
-int
+VL_EXPORT vl_size
 vl_pgm_get_npixels (VlPgmImage const *im)
 {
   return im->width * im->height ;
 }
 
 /** ------------------------------------------------------------------
- ** @brief Get PGM image bytes per pixel
- **
+ ** @brief Get PGM image bytes per pixel.
  ** @param im PGM image descriptor.
+ ** @return number of bytes per pixel.
  **
  ** The function returns the number of bytes for each pixel of the
  ** PGM image @a im.
- **
- ** @return number of bytes per pixel.
  **/
 
-VL_EXPORT
-int
+VL_EXPORT vl_size
 vl_pgm_get_bpp (VlPgmImage const *im)
 {
   return (im->max_value >= 256) + 1 ;
 }
 
 /** ------------------------------------------------------------------
- ** @brief Extract PGM header from stream
- **
+ ** @brief Extract PGM header from stream.
  ** @param f  input file.
  ** @param im image structure to fill.
+ ** @return error code.
  **
  ** The function extracts from the file @a f the meta-data section of
  ** an image encoded in PGM format. The function fills the structure
- ** VlPgmImage according.
+ ** ::VlPgmImage accordingly.
  **
- ** @return error code. The error may be either
- ** ::VL_PGM_INV_HEAD or ::VL_PGM_INV_META depending whether the error
- ** occurred in decoding the header or meta section of the PGM file.
+ ** The error may be either ::VL_ERR_PGM_INV_HEAD or ::VL_ERR_PGM_INV_META
+ ** depending whether the error occurred in decoding the header or
+ ** meta section of the PGM file.
  **/
 
-VL_EXPORT
-int
+VL_EXPORT int
 vl_pgm_extract_head (FILE* f, VlPgmImage *im)
 {
-  char     magic [2] ;
-  int      c ;
-  int      is_raw ;
-  int      width ;
-  int      height ;
-  int      max_value ;
-  int      sz ;
-  vl_bool  good ;
-
-  VlThreadSpecificState * threadState = vl_get_thread_specific_state() ;
+  char magic [2] ;
+  int c ;
+  int is_raw ;
+  int width ;
+  int height ;
+  int max_value ;
+  size_t sz ;
+  vl_bool good ;
 
   /* -----------------------------------------------------------------
    *                                                check magic number
@@ -184,8 +175,7 @@ vl_pgm_extract_head (FILE* f, VlPgmImage *im)
   sz = fread(magic, 1, 2, f) ;
 
   if (sz < 2) {
-    threadState->lastError  = VL_ERR_PGM_INV_HEAD ;
-    return -1 ;
+    return vl_set_last_error(VL_ERR_PGM_INV_HEAD, "Invalid PGM header") ;
   }
 
   good = magic [0] == 'P' ;
@@ -205,7 +195,7 @@ vl_pgm_extract_head (FILE* f, VlPgmImage *im)
   }
 
   if( ! good ) {
-    return (threadState->lastError= VL_ERR_PGM_INV_HEAD) ;
+    return vl_set_last_error(VL_ERR_PGM_INV_HEAD, "Invalid PGM header") ;
   }
 
   /* -----------------------------------------------------------------
@@ -240,11 +230,11 @@ vl_pgm_extract_head (FILE* f, VlPgmImage *im)
     c == '\r' ;
 
   if(! good) {
-    return (threadState->lastError = VL_ERR_PGM_INV_META) ;
+    return vl_set_last_error(VL_ERR_PGM_INV_META, "Invalid PGM meta information");
   }
 
-  if(! max_value >= 65536) {
-    return (threadState->lastError = VL_ERR_PGM_INV_META) ;
+  if(! (max_value >= 65536)) {
+    return vl_set_last_error(VL_ERR_PGM_INV_META, "Invalid PGM meta information");
   }
 
   /* exit */
@@ -256,30 +246,26 @@ vl_pgm_extract_head (FILE* f, VlPgmImage *im)
 }
 
 /** ------------------------------------------------------------------
- ** @brief Extract PGM data from stream
- **
- ** @param f    input file.
- ** @param im   PGM image descriptor.
+ ** @brief Extract PGM data from stream.
+ ** @param f input file.
+ ** @param im PGM image descriptor.
  ** @param data data buffer to fill.
+ ** @return error code.
  **
  ** The function extracts from the file @a f the data section of an
  ** image encoded in PGM format. The function fills the buffer @a data
  ** according. The buffer @a data should be ::vl_pgm_get_npixels() by
  ** ::vl_pgm_get_bpp() bytes large.
- **
- ** @return error code.
  **/
 
 VL_EXPORT
 int
 vl_pgm_extract_data (FILE* f, VlPgmImage const *im, void *data)
 {
-  int bpp       = vl_pgm_get_bpp       (im) ;
-  int data_size = vl_pgm_get_npixels (im) ;
-  int c ;
+  vl_size bpp = vl_pgm_get_bpp(im) ;
+  vl_size data_size = vl_pgm_get_npixels(im) ;
   vl_bool good = 1 ;
-
-  VlThreadSpecificState * threadState = vl_get_thread_specific_state() ;
+  size_t c ;
 
   /* -----------------------------------------------------------------
    *                                                         read data
@@ -302,7 +288,7 @@ vl_pgm_extract_data (FILE* f, VlPgmImage const *im, void *data)
     /* adjust endianess */
 #if defined(VL_ARCH_LITTLE_ENDIAN)
     if (bpp == 2) {
-      int i ;
+      vl_uindex i ;
       vl_uint8 *pt = (vl_uint8*) data ;
       for(i = 0 ; i < 2 * data_size ; i += 2) {
         vl_uint8 tmp = pt [i] ;
@@ -317,7 +303,7 @@ vl_pgm_extract_data (FILE* f, VlPgmImage const *im, void *data)
      by whitespaces.
   */
   else {
-    int i ;
+    vl_uindex i ;
     int unsigned v ;
     for(good = 1, i = 0 ;
         i < data_size && good ;
@@ -332,17 +318,14 @@ vl_pgm_extract_data (FILE* f, VlPgmImage const *im, void *data)
     }
   }
 
-  if(! good ) {
-    snprintf(threadState->lastErrorMessage, VL_ERR_MSG_LEN,
-             "Invalid PGM data") ;
-    return (threadState->lastError = VL_ERR_PGM_INV_DATA) ;
+  if(! good) {
+    return vl_set_last_error(VL_ERR_PGM_INV_DATA, "Invalid PGM data") ;
   }
   return 0 ;
 }
 
 /** ------------------------------------------------------------------
- ** @brief Insert a PGM image into a stream
- **
+ ** @brief Insert a PGM image into a stream.
  ** @param f output file.
  ** @param im   PGM image meta-data.
  ** @param data image data.
@@ -353,23 +336,21 @@ VL_EXPORT
 int
 vl_pgm_insert(FILE* f, VlPgmImage const *im, void const *data)
 {
-  int bpp = vl_pgm_get_bpp (im) ;
-  int data_size = vl_pgm_get_npixels (im) ;
-  int c ;
-
-  VlThreadSpecificState * threadState = vl_get_thread_specific_state() ;
+  vl_size bpp = vl_pgm_get_bpp (im) ;
+  vl_size data_size = vl_pgm_get_npixels (im) ;
+  size_t c ;
 
   /* write preamble */
   fprintf(f,
           "P5\n%d\n%d\n%d\n",
-          im->width,
-          im->height,
-          im->max_value) ;
+          (signed)im->width,
+          (signed)im->height,
+          (signed)im->max_value) ;
 
   /* take care of endianness */
 #if defined(VL_ARCH_LITTLE_ENDIAN)
   if (bpp == 2) {
-    int i ;
+    vl_uindex i ;
     vl_uint8* temp = vl_malloc (2 * data_size) ;
     memcpy(temp, data, 2 * data_size) ;
     for(i = 0 ; i < 2 * data_size ; i += 2) {
@@ -388,44 +369,35 @@ vl_pgm_insert(FILE* f, VlPgmImage const *im, void const *data)
 #endif
 
   if(c != data_size) {
-       snprintf(threadState->lastErrorMessage, VL_ERR_MSG_LEN,
-             "Error writing PGM data") ;
-    return (threadState->lastError = VL_ERR_PGM_IO) ;
-
+    return vl_set_last_error(VL_ERR_PGM_IO, "Error writing PGM data") ;
   }
   return 0 ;
 }
 
 /** ------------------------------------------------------------------
- ** @brief Read a PGM file
- **
+ ** @brief Read a PGM file.
  ** @param name file name.
  ** @param im a pointer to the PGM image structure to fill.
  ** @param data a pointer to the pointer to the allocated buffer.
+ ** @return error code.
  **
- ** The function reads a PGM image from file @a name and initializes the
- ** structure @a im and the buffer @a data accordingly.
+ ** The function reads a PGM image from file @a name and initializes
+ ** the structure @a im and the buffer @a data accordingly.
  **
  ** The ownership of the buffer @a data is transfered to the caller.
  ** @a data should be freed by means of ::vl_free().
  **
  ** @bug Only PGM files with 1 BPP are supported.
- **
- ** @return error code.
  **/
 
 VL_EXPORT
 int vl_pgm_read_new (char const *name, VlPgmImage *im, vl_uint8** data)
 {
   int err = 0 ;
-  VlThreadSpecificState * threadState = vl_get_thread_specific_state() ;
-
   FILE *f = fopen (name, "rb") ;
 
   if (! f) {
-    snprintf(threadState->lastErrorMessage, VL_ERR_MSG_LEN,
-             "Error opening PGM file `%s' for reading", name) ;
-    return (threadState->lastError = VL_ERR_PGM_IO) ;
+    return vl_set_last_error(VL_ERR_PGM_IO, "Error opening PGM file `%s' for reading", name) ;
   }
 
   err = vl_pgm_extract_head(f, im) ;
@@ -435,9 +407,7 @@ int vl_pgm_read_new (char const *name, VlPgmImage *im, vl_uint8** data)
   }
 
   if (vl_pgm_get_bpp(im) > 1) {
-    snprintf(threadState->lastErrorMessage, VL_ERR_MSG_LEN,
-             "vl_pgm_read(): PGM with BPP > 1 not supported") ;
-    return (threadState->lastError =  VL_ERR_BAD_ARG) ;
+    return vl_set_last_error(VL_ERR_BAD_ARG, "PGM with BPP > 1 not supported") ;
   }
 
   *data = vl_malloc (vl_pgm_get_npixels(im) * sizeof(vl_uint8)) ;
@@ -453,22 +423,20 @@ int vl_pgm_read_new (char const *name, VlPgmImage *im, vl_uint8** data)
 }
 
 /** ------------------------------------------------------------------
- ** @brief Read floats from a PGM file
- **
+ ** @brief Read floats from a PGM file.
  ** @param name file name.
  ** @param im a pointer to the PGM image structure to fill.
  ** @param data a pointer to the pointer to the allocated buffer.
+ ** @return error code.
  **
- ** The function reads a PGM image from file @a name and initializes the
- ** structure @a im and the buffer @a data accordingly. The buffer
+ ** The function reads a PGM image from file @a name and initializes
+ ** the structure @a im and the buffer @a data accordingly. The buffer
  ** @a data is an array of floats in the range [0, 1].
  **
  ** The ownership of the buffer @a data is transfered to the caller.
  ** @a data should be freed by means of ::vl_free().
  **
  ** @bug Only PGM files with 1 BPP are supported.
- **
- ** @return error code.
  **/
 
 VL_EXPORT
@@ -487,7 +455,7 @@ int vl_pgm_read_new_f (char const *name,  VlPgmImage *im, float** data)
   *data = vl_malloc (sizeof(float) * npixels) ;
   {
     size_t k ;
-    float scale = 1.0f / im->max_value ;
+    float scale = 1.0f / (float)im->max_value ;
     for (k = 0 ; k < npixels ; ++ k) (*data)[k] = scale * idata[k] ;
   }
 
@@ -496,18 +464,16 @@ int vl_pgm_read_new_f (char const *name,  VlPgmImage *im, float** data)
 }
 
 /** ------------------------------------------------------------------
- ** @brief Write bytes to a PGM file
- **
+ ** @brief Write bytes to a PGM file.
  ** @param name file name.
  ** @param data data to write.
  ** @param width width of the image.
  ** @param height height of the image.
+ ** @return error code.
  **
  ** The function dumps the image @a data to the PGM file of the specified
  ** name. This is an helper function simplifying the usage of
  ** vl_pgm_insert().
- **
- ** @return error code.
  **/
 
 VL_EXPORT
@@ -515,14 +481,11 @@ int vl_pgm_write (char const *name, vl_uint8 const* data, int width, int height)
 {
   int err = 0 ;
   VlPgmImage pgm ;
-  VlThreadSpecificState * threadState = vl_get_thread_specific_state() ;
-
   FILE *f = fopen (name, "wb") ;
 
   if (! f) {
-    snprintf(threadState->lastErrorMessage, VL_ERR_MSG_LEN,
-             "Error opening PGM file for writing") ;
-    return (threadState->lastError = VL_ERR_MSG_LEN) ;
+    return vl_set_last_error(VL_ERR_PGM_IO,
+             "Error opening PGM file '%s' for writing", name) ;
   }
 
   pgm.width = width ;
@@ -538,18 +501,16 @@ int vl_pgm_write (char const *name, vl_uint8 const* data, int width, int height)
 
 /** -------------------------------------------------------------------
  ** @brief Write floats to PGM file
- **
  ** @param name file name.
  ** @param data data to write.
  ** @param width width of the image.
  ** @param height height of the image.
+ ** @return error code.
  **
- ** The function dumps the image @a data to the PGM file of the specified
- ** name. The data is re-scaled to fit in the range 0-255.
+ ** The function dumps the image @a data to the PGM file of the
+ ** specified name. The data is re-scaled to fit in the range 0-255.
  ** This is an helper function simplifying the usage of
  ** vl_pgm_insert().
- **
- ** @return error code.
  **/
 
 VL_EXPORT
