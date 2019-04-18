@@ -62,10 +62,9 @@ if size(pointCloud, 1)~=3
 end
 
 % show the point cloud
-h = gcf;
+h = gcf();
 plot3(pointCloud(1,:), pointCloud(2,:), pointCloud(3,:), 'c.');
 cameratoolbar('Show'); % show the camera toolbar
-%fcw();
 hold on; % so we can highlight clicked points without clearing the figure
 if nargin > 1
     patch('Vertices', pointCloud', 'Faces', faces', 'FaceVertexCData', repmat([0.7 0.7 0.7], size(pointCloud, 2), 1), 'EdgeColor', 'k', 'LineStyle', '-', 'FaceColor', 'flat');
@@ -73,6 +72,9 @@ end
 
 % set the callback, pass pointCloud to the callback function
 set(h, 'WindowButtonDownFcn', {@callbackClickA3DPoint, pointCloud});
+% Require shift to be pressed to select point. Otherwise, control the
+% figure.
+fcw([0 2 2]);
 end
 
 function callbackClickA3DPoint(src, eventData, pointCloud)
