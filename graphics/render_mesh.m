@@ -6,8 +6,8 @@
 % containing vertex indices.
 %
 %IN:
-%   vertices - 
-%   faces - 
+%   vertices - Mx3 matrix of triangle vertices (rows).
+%   faces - Nx3 matrix of vertex indices for each triangle (columns).
 %   options - string value pairs:
 %      NumColors - scalar indicating the number of colour quantization
 %                  levels (0 for no quantization). Default: 0.
@@ -33,3 +33,4 @@ opts = vgg_argparse(opts, varargin);
 % Create the options parameters
 opts = {'Marker', opts.Marker, 'MarkerSize', opts.MarkerSize, 'LineWidth', opts.LineWidth, 'LineStyle', opts.LineStyle, 'FaceColor', opts.FaceColor};
 h = patch('Vertices', vertices, 'Faces', faces, 'FaceVertexCData', repmat([0.7 0.7 0.7], size(vertices, 1), 1), 'EdgeColor', 'flat', 'MarkerEdgeColor', 'flat', 'BackFaceLighting', 'reverselit', 'FaceLighting', 'phong', opts{:});
+end
