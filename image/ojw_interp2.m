@@ -17,7 +17,7 @@
 %	X - MxN horizontal offsets (1 being the centre of the first pixel).
 %	Y - MxN vertical offsets (1 being the centre of the first pixel).
 %	interp_mode - string, either 'nearest', 'linear', 'cubic', 'magic',
-%	              '3lanczos', or '5lanczos'. Default: 'linear'.
+%	              '4lanczos', or '6lanczos'. Default: 'linear'.
 %	oobv - 1x1 Out of bounds value. Default: NaN.
 %
 %OUT:
