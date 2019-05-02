@@ -1,4 +1,4 @@
-function h = clickA3DPoint(pointCloud, faces)
+function index = clickA3DPoint(pointCloud, faces)
 %CLICKA3DPOINT
 %   H = CLICKA3DPOINT(POINTCLOUD) shows a 3D point cloud and lets the user
 %   select points by clicking on them. The selected point is highlighted 
@@ -62,19 +62,28 @@ if size(pointCloud, 1)~=3
 end
 
 % show the point cloud
-h = gcf();
-plot3(pointCloud(1,:), pointCloud(2,:), pointCloud(3,:), 'c.');
+h = figure();
+plot3(pointCloud(1,:), pointCloud(2,:), pointCloud(3,:), 'b.');
 cameratoolbar('Show'); % show the camera toolbar
 hold on; % so we can highlight clicked points without clearing the figure
 if nargin > 1
     patch('Vertices', pointCloud', 'Faces', faces', 'FaceVertexCData', repmat([0.7 0.7 0.7], size(pointCloud, 2), 1), 'EdgeColor', 'k', 'LineStyle', '-', 'FaceColor', 'flat');
 end
 
+global pointCloudIndex
+pointCloudIndex = [];
+
 % set the callback, pass pointCloud to the callback function
-set(h, 'WindowButtonDownFcn', {@callbackClickA3DPoint, pointCloud});
+set(h, 'WindowButtonDownFcn', {@callbackClickA3DPoint, pointCloud}, 'UserData', []);
 % Require shift to be pressed to select point. Otherwise, control the
 % figure.
 fcw([0 2 2]);
+
+while isempty(pointCloudIndex)
+    pause(0.1);
+end
+index = pointCloudIndex;
+close(h);
 end
 
 function callbackClickA3DPoint(src, eventData, pointCloud)
@@ -92,12 +101,13 @@ function callbackClickA3DPoint(src, eventData, pointCloud)
 %   revised Jun 3, 2008
 %   revised May 19, 2009
 
-point = get(gca, 'CurrentPoint'); % mouse click position
-camPos = get(gca, 'CameraPosition'); % camera position
-camTgt = get(gca, 'CameraTarget'); % where the camera is pointing to
+ax = gca();
+point = get(ax, 'CurrentPoint'); % mouse click position
+camPos = get(ax, 'CameraPosition'); % camera position
+camTgt = get(ax, 'CameraTarget'); % where the camera is pointing to
 
 camDir = camPos - camTgt; % camera direction
-camUpVect = get(gca, 'CameraUpVector'); % camera 'up' vector
+camUpVect = get(ax, 'CameraUpVector'); % camera 'up' vector
 
 % build an orthonormal frame based on the viewing direction and the 
 % up vector (the "view frame")
@@ -112,34 +122,12 @@ rot = [xAxis'; yAxis'; zAxis']; % view rotation
 rotatedPointCloud = rot * pointCloud; 
 
 % the clicked point represented in the view frame
-rotatedPointFront = rot * point' ;
+rotatedPointFront = rot * point';
 
 % find the nearest neighbour to the clicked point 
+global pointCloudIndex
 pointCloudIndex = dsearchn(rotatedPointCloud(1:2,:)', ... 
     rotatedPointFront(1:2));
-
-h = findobj(gca,'Tag','pt'); % try to find the old point
-selectedPoint = pointCloud(:, pointCloudIndex); 
-
-if isempty(h) % if it's the first click (i.e. no previous point to delete)
-    
-    % highlight the selected point
-    h = plot3(selectedPoint(1,:), selectedPoint(2,:), ...
-        selectedPoint(3,:), 'r.', 'MarkerSize', 20); 
-    set(h,'Tag','pt'); % set its Tag property for later use   
-
-else % if it is not the first click
-
-    delete(h); % delete the previously selected point
-    
-    % highlight the newly selected point
-    h = plot3(selectedPoint(1,:), selectedPoint(2,:), ...
-        selectedPoint(3,:), 'r.', 'MarkerSize', 20);  
-    set(h,'Tag','pt');  % set its Tag property for later use
-
-end
-
-fprintf('you clicked on point number %d\n', pointCloudIndex);
 end
 
 function v = rowNorm(A)
