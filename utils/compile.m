@@ -184,7 +184,12 @@ for a = 1:numel(sourceList)
                 [sourceList{a}, co] = feval(sourceList{a}(3:end), debug);
                 compiler_options = [compiler_options ' ' co];
             case 'C' % Compiler option
-                compiler_options = [compiler_options ' -' sourceList{a}(3:end)];
+                if ispc()
+                    opt = ['/' strrep(sourceList{a}(3:end), '=', ':')];
+                else
+                    opt = ['-' sourceList{a}(3:end)];
+                end
+                compiler_options = [compiler_options ' ' opt];
                 sourceList{a} = '';
             case 'g' % Debugging on
                 debug = debug | (numel(sourceList{a}) == 2);
