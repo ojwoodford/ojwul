@@ -1,21 +1,22 @@
-%GET_USER_DIR Get a user/computer-specific directory path
+%GET_USER_PATH Get a user/computer-specific directory or file path
 %
-%   path_str = get_user_dir(name, check_path, [append])
+%   path_str = get_user_path(name, check_path, type [append])
 %
-% Ask a user to select a specific directory, and store this path. If a
-% valid path already exists, use this.
+% Ask a user to select a specific directory or file, and store its path.
+% If a valid path already exists, use this.
 %
 %IN:
 %   name - Name of the directory to be found.
 %   check_path - Handle to function which takes path_str as input and
 %                returns a boolean indicating whether the path is valid.
+%   type - Scalar. 1 for directory, 2 for file, 3 for application folder.
 %   append - String to append to path_str before checking and storing.
 %            Default: ''.
 %
 %OUT:
 %   path_str - Path to user specific directory.
 
-function path_str = get_user_dir(name, check_path, append)
+function path_str = get_user_path(name, check_path, type, append)
 if nargin < 3
     append = '';
 end
@@ -28,14 +29,25 @@ if check_path(path_str)
 end
 
 % Ask the user to enter the path
-help = sprintf('Please select your %s directory.', name);
+type_name = {'directory', 'file', 'application folder'};
+help = sprintf('Please select your %s %s.', name, type_name{type});
 while 1
     if ismac() % Is a Mac
         % Give separate warning as the uigetdir dialogue box doesn't have a
         % title
         uiwait(warndlg(help))
+        type = min(type, 2);
     end
-    path_str = uigetdir('/', help);
+    if type == 2
+        [file, path_str] = uigetfile('*', help);
+        if file == 0
+            path_str = 0;
+        else
+            path_str = [path_str file];
+        end
+    else
+        path_str = uigetdir('/', help);
+    end
     if isequal(path_str, 0)
         % User hit cancel or closed window
         error('%s not found.', name);

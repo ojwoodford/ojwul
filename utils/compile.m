@@ -316,7 +316,7 @@ if check_cuda_path(path_str)
     user_string('cuda_path', path_str);
     return;
 end
-path_str = get_user_dir('CUDA', check_cuda_path);
+path_str = get_user_path('CUDA', check_cuda_path, 1);
 end
 
 function good = check_cuda_path(path_str)
@@ -333,7 +333,7 @@ end
 end
 
 function path_str = cuda_sdk
-path_str = get_user_dir('CUDA SDK', @(p) exist([p 'inc' filesep 'cutil.h'], 'file'), ['C' filesep 'common' filesep]);
+path_str = get_user_path('CUDA SDK', @(p) exist([p 'inc' filesep 'cutil.h'], 'file'), 1, ['C' filesep 'common' filesep]);
 end
 
 % FEVAL for function which is not a subfunction in this file
@@ -382,14 +382,14 @@ end
 % Create the compiler options for OpenCV
 function [str, co] = opencv(debug)
 co = '';
-str = get_user_dir('OpenCV', @(p) exist([p 'include/opencv2'], 'dir'));
+str = get_user_path('OpenCV', @(p) exist([p 'include/opencv2'], 'dir'), 1);
 str = sprintf('-I"%sinclude" -L"%slib" -lopencv_core -lopencv_calib3d -lopencv_imgproc', str, str);
 end
 
 % Add the boost library directory
 function [str, co] = boost(debug)
 co = '';
-str = get_user_dir('Boost', @(p) exist(sprintf('%sboost%sshared_ptr.hpp', p, filesep), 'file'));
+str = get_user_path('Boost', @(p) exist(sprintf('%sboost%sshared_ptr.hpp', p, filesep), 'file'), 1);
 str = sprintf('-I"%s" -L"%sstage%slib%s"', str, str, filesep, filesep);
 end
 
@@ -399,14 +399,14 @@ if ~ispc()
     error('DirectX only supported on Windows');
 end
 co = '';
-str = get_user_dir('DirectX SDK', @(p) exist(sprintf('%sLib%sx86%sdxguid.lib', p, filesep, filesep), 'file'));
+str = get_user_path('DirectX SDK', @(p) exist(sprintf('%sLib%sx86%sdxguid.lib', p, filesep, filesep), 'file'), 1);
 str = sprintf('-L"%sLib%sx%d"', str, filesep, 86-22*is64bit());
 end
 
 % Add the Eigen include directory
 function [str, co] = eigen(debug)
 co = '';
-str = get_user_dir('Eigen', @(p) exist(sprintf('%sEigen%sCore', p, filesep), 'file'));
+str = get_user_path('Eigen', @(p) exist(sprintf('%sEigen%sCore', p, filesep), 'file'), 1);
 str = sprintf('-I"%s"', str(1:end-1));
 if ~debug
     str = [str ' -DEIGEN_NO_DEBUG'];
@@ -416,42 +416,42 @@ end
 % Add the Ceres library directory
 function [str, co] = ceres(debug)
 co = '';
-str = get_user_dir('Ceres', @(p) exist(sprintf('%sinclude%sceres%sceres.h', p, filesep, filesep), 'file'));
+str = get_user_path('Ceres', @(p) exist(sprintf('%sinclude%sceres%sceres.h', p, filesep, filesep), 'file'), 1);
 str = sprintf('-I"%sinclude" -I"%sconfig" -L"%slib" -lceres', str, str, str);
 end
 
 % Add the Suite Sparse library directory
 function [str, co] = suitesparse(debug)
 co = '';
-str = get_user_dir('SuiteSparse', @(p) exist(sprintf('%sinclude%sSuiteSparse_config.h', p, filesep), 'file'));
+str = get_user_path('SuiteSparse', @(p) exist(sprintf('%sinclude%sSuiteSparse_config.h', p, filesep), 'file'), 1);
 str = sprintf('-I"%sinclude" -L"%slib" -lcholmod', str, str);
 end
 
 % Add the glog library directory
 function [str, co] = glog(debug)
 co = '';
-str = get_user_dir('glog', @(p) exist(sprintf('%sinclude%sglog%slogging.h', p, filesep, filesep), 'file'));
+str = get_user_path('glog', @(p) exist(sprintf('%sinclude%sglog%slogging.h', p, filesep, filesep), 'file'), 1);
 str = sprintf('-I"%sinclude" -L"%slib" -lglog', str, str);
 end
 
 % Add the gflags library directory
 function [str, co] = gflags(debug)
 co = '';
-str = get_user_dir('glflags', @(p) exist(sprintf('%sinclude%sgflags%sgflags.h', p, filesep, filesep), 'file'));
+str = get_user_path('glflags', @(p) exist(sprintf('%sinclude%sgflags%sgflags.h', p, filesep, filesep), 'file'), 1);
 str = sprintf('-I"%sinclude" -L"%slib" -lgflags', str, str);
 end
 
 % Add the Sophus include directory
 function [str, co] = sophus(debug)
 co = '';
-str = get_user_dir('Sophus', @(p) exist(sprintf('%ssophus%sse3.hpp', p, filesep), 'file'));
+str = get_user_path('Sophus', @(p) exist(sprintf('%ssophus%sse3.hpp', p, filesep), 'file'), 1);
 str = sprintf('-I"%s"', str(1:end-1));
 end
 
 % Add the liegroups library
 function [str, co] = liegroups(debug)
 co = '';
-str = get_user_dir('liegroups', @(p) exist(sprintf('%sse3.hpp', p), 'file'));
+str = get_user_path('liegroups', @(p) exist(sprintf('%sse3.hpp', p), 'file'), 1);
 if debug
     debug = 'Debug';
 else
