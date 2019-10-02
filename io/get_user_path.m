@@ -17,7 +17,7 @@
 %   path_str - Path to user specific directory.
 
 function path_str = get_user_path(name, check_path, type, append)
-if nargin < 3
+if nargin < 4
     append = '';
 end
 
