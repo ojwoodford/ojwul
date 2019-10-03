@@ -103,49 +103,17 @@ function callbackClickA3DPoint(src, eventData, pointCloud)
 
 ax = gca();
 point = get(ax, 'CurrentPoint'); % mouse click position
-camPos = get(ax, 'CameraPosition'); % camera position
-camTgt = get(ax, 'CameraTarget'); % where the camera is pointing to
 
-camDir = camPos - camTgt; % camera direction
-camUpVect = get(ax, 'CameraUpVector'); % camera 'up' vector
+% Get 2d coordinates in the current view
+[x, y] = ds2fig(ax, [pointCloud(1,:) point(1,1)], [pointCloud(2,:) point(1,2)], [pointCloud(3,:) point(1,3)]);
 
-% build an orthonormal frame based on the viewing direction and the 
-% up vector (the "view frame")
-zAxis = col(camDir/norm(camDir));    
-upAxis = col(camUpVect/norm(camUpVect)); 
-xAxis = cross(upAxis, zAxis);
-yAxis = cross(zAxis, xAxis);
-
-rot = [xAxis'; yAxis'; zAxis']; % view rotation 
-
-% the point cloud represented in the view frame
-rotatedPointCloud = rot * pointCloud; 
-
-% the clicked point represented in the view frame
-rotatedPointFront = rot * point';
+% Scale according to dimensions
+set(ax, 'Units', 'pixels');
+pos = get(ax, 'Position');
+x = pos(3) * x;
+y = pos(4) * y;
 
 % find the nearest neighbour to the clicked point 
 global pointCloudIndex
-pointCloudIndex = dsearchn(rotatedPointCloud(1:2,:)', ... 
-    rotatedPointFront(1:2));
+pointCloudIndex = dsearchn([x(1:end-1)' y(1:end-1)'], [x(end) y(end)]);
 end
-
-function v = rowNorm(A)
-%ROWNORM  norm of each row
-%   V = ROWNORM(A) returns the Euclidean norm of each row of A. When A is 
-%   an M*N matrix, the output, V, will be a M*1 vector.
-%
-%   Babak taati May 4, 2005
-%   revised May 19, 2009
-
-if nargin ~= 1
-    error('Requires one input arguments.')
-end
-
-v = sqrt(sum(A.*A, 2));
-end
-
-function A = col(A)
-A = A(:);
-end
-
