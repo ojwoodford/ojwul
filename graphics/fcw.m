@@ -76,31 +76,37 @@ for a = 1:nargin
     end
 end
 % Flush any pending draws
-drawnow;
+drawnow();
 % Clear any visualization modes we might be in
 pan(fig, 'off');
 zoom(fig, 'off');
 rotate3d(fig, 'off');
 % Find all the 3D axes
 hAx = findobj(fig, 'Type', 'axes', '-depth', 1);
-for a = numel(hAx):-1:1
+M = false(numel(hAx), 1);
+for a = 1:numel(hAx)
     zl = zlim(hAx(a));
     M(a) = zl(2) ~= 1 || (zl(1) ~= -1 && zl(1) ~= 0);
 end
 hAx = hAx(M);
 % For each set of axes
+data.view = containers.Map('KeyType', 'double', 'ValueType', 'any');
 for h = hAx'
     % Set everything to manual
     set(h, 'CameraViewAngleMode', 'manual', 'CameraTargetMode', 'manual', 'CameraPositionMode', 'manual');
     % Store the camera viewpoint
-    set(h, 'UserData', camview(h));
+    data.view(double(h)) = camview(h);
 end
+% Store the data
 % Link if necessary
 if link
-    link = linkprop(hAx, {'CameraPosition', 'CameraTarget', 'CameraViewAngle', 'CameraUpVector', 'Projection'});
+    data.link = linkprop(hAx, {'CameraPosition', 'CameraTarget', 'CameraViewAngle', 'CameraUpVector', 'Projection'});
 end
 % Get existing callbacks, and quit a previous instance of fcw if running
 [prev_mousedown, prev_mouseup, prev_keypress, prev_scroll] = quit_widget(fig);
+% Create the data storage object
+hData = uipanel(fig, 'Tag', 'fcw_data', 'Visible', 'off', 'Position', [0 0 0 0]);
+set(hData, 'UserData', data);
 % Create the modifier checking function
 M = modifiers == 0 | modifiers == 1;
 if ~any(M)
@@ -116,13 +122,13 @@ set(fig, 'WindowButtonDownFcn', [{@fcw_mousedown, {str2func(['fcw_' buttons{1}])
          'WindowButtonUpFcn', [{@fcw_mouseup} prev_mouseup], ...
          'KeyPressFcn', [{@fcw_keypress, modifiers} prev_keypress], ... 
          'WindowScrollWheelFcn', [{@fcw_scroll, str2func(['fcw_' buttons{4}]), modifiers} prev_scroll], ...
-         'BusyAction', 'cancel', 'UserData', link);
+         'BusyAction', 'cancel');
 if block
     % Block until the figure is closed or the widget is quit
     while 1
         try
             pause(0.01);
-            if isempty(get(fig, 'UserData'))
+            if isempty(get(hData, 'UserData'))
                 break;
             end
         catch
@@ -133,14 +139,15 @@ if block
 end
 end
 
-function tf = isvalid(cax)
-tf = isempty(cax) || ~isequal(size(get(cax, 'UserData')), [4 4]);
+function tf = isinvalid(cax, map)
+tf = isempty(cax) || ~map.isKey(double(cax)) || ~isequal(size(map(double(cax))), [4 4]);
 end
 
 function fcw_keypress(src, eventData, modifiers, varargin)
 fig = ancestor(src, 'figure');
 cax = get(fig, 'CurrentAxes');
-if isvalid(cax) || modifiers() % Check the required modifiers were pressed, else do nothing
+hData = findobj(fig, 'Tag', 'fcw_data', '-depth', 1);
+if isinvalid(cax, hData.UserData.view) || modifiers() % Check the required modifiers were pressed, else do nothing
     % Call the other keypress callbacks
     if ~isempty(varargin)
         varargin{1}(src, eventData, varargin{2:end});
@@ -175,7 +182,9 @@ switch eventData.Key
     case 'r'
         % Reset all the axes
         for h = findobj(fig, 'Type', 'axes', '-depth', 1)'
-            camview(h, get(h, 'UserData'));
+            if hData.UserData.view.isKey(double(h))
+                camview(h, hData.UserData.view(double(h)));
+            end
         end
     case 'q'
         % Quit the widget
@@ -194,7 +203,8 @@ function fcw_mousedown(src, eventData, funcs, modifiers, varargin)
 % Check an axes is selected
 fig = ancestor(src, 'figure');
 cax = get(fig, 'CurrentAxes');
-if isvalid(cax) || modifiers() % Check the required modifiers were pressed, else do nothing
+hData = findobj(fig, 'Tag', 'fcw_data', '-depth', 1);
+if isinvalid(cax, hData.UserData.view) || modifiers() % Check the required modifiers were pressed, else do nothing
     % Call the other mousedown callbacks
     % This allows other interactions to be used easily alongside fcw()
     if ~isempty(varargin)
@@ -209,7 +219,7 @@ switch get(fig, 'SelectionType')
     case 'alt' % Right hand button
         method = funcs{3};
     case 'open' % Double click
-        camview(cax, get(cax, 'UserData'));
+        camview(cax, hData.UserData.view(double(cax)));
         return;
     otherwise
         method = funcs{1};
@@ -287,7 +297,8 @@ function fcw_scroll(src, eventData, func, modifiers, varargin)
 % Get the axes handle
 fig = ancestor(src, 'figure');
 cax = get(fig, 'CurrentAxes');
-if isvalid(cax) || modifiers() % Check the required modifiers were pressed, else do nothing
+hData = findobj(fig, 'Tag', 'fcw_data', '-depth', 1);
+if isinvalid(cax, hData.UserData.view) || modifiers() % Check the required modifiers were pressed, else do nothing
     % Call the other mousedown callbacks
     % This allows other interactions to be used easily alongside fcw()
     if ~isempty(varargin)
@@ -404,5 +415,9 @@ if ~isempty(prev_scroll) && strcmp('fcw_scroll', func2str(prev_scroll{1}))
     prev_scroll = prev_scroll(4:end);
 end
 % Reset the callbacks
-set(fig, 'WindowButtonDownFcn', prev_mousedown, 'WindowButtonUpFcn', prev_mouseup, 'KeyPressFcn', prev_keypress, 'WindowScrollWheelFcn', prev_scroll, 'WindowButtonMotionFcn', [], 'Pointer', 'arrow', 'UserData', []);
+set(fig, 'WindowButtonDownFcn', prev_mousedown, 'WindowButtonUpFcn', prev_mouseup, 'KeyPressFcn', prev_keypress, 'WindowScrollWheelFcn', prev_scroll, 'WindowButtonMotionFcn', [], 'Pointer', 'arrow');
+% Flag the end
+hData = findobj(fig, 'Tag', 'fcw_data', '-depth', 1);
+set(hData, 'UserData', []);
+delete(hData);
 end
