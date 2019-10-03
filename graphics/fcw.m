@@ -119,7 +119,7 @@ else
 end
 % Initialize the callbacks
 set(fig, 'WindowButtonDownFcn', [{@fcw_mousedown, {str2func(['fcw_' buttons{1}]), str2func(['fcw_' buttons{2}]), str2func(['fcw_' buttons{3}])}, modifiers} prev_mousedown], ...
-         'WindowButtonUpFcn', [{@fcw_mouseup} prev_mouseup], ...
+         'WindowButtonUpFcn', [{@fcw_mouseup, modifiers} prev_mouseup], ...
          'KeyPressFcn', [{@fcw_keypress, modifiers} prev_keypress], ... 
          'WindowScrollWheelFcn', [{@fcw_scroll, str2func(['fcw_' buttons{4}]), modifiers} prev_scroll], ...
          'BusyAction', 'cancel');
@@ -288,7 +288,15 @@ FCW_POS = get(0, 'PointerLocation');
 set(ancestor(src, 'figure'), 'Pointer', 'custom', 'pointershapecdata', shape, 'WindowButtonMotionFcn', {method, cax});
 end
 
-function fcw_mouseup(src, eventData)
+function fcw_mouseup(src, eventData, modifiers, varargin)
+if modifiers()
+    % Call the other mouseup callbacks
+    % This allows other interactions to be used easily alongside fcw()
+    if ~isempty(varargin)
+        varargin{1}(src, eventData, varargin{2:end});
+    end
+    return;
+end
 % Clear the cursor and callback
 set(ancestor(src, 'figure'), 'WindowButtonMotionFcn', [], 'Pointer', 'arrow');
 end
