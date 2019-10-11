@@ -60,7 +60,7 @@ str = '';
 while (~feof(fid) && isempty(str))
     str = strtrim(fgets(fid));
 end
-if ~stricmp(str(1:3), 'ply')
+if ~strcmpi(str(1:3), 'ply')
     error('The file is not a valid ply one.');    
 end
 
@@ -70,7 +70,7 @@ nface = 0;
 stage = '';
 while (~feof(fid))
     str = strtrim(fgets(fid));
-	if stricmp(str, 'end_header')
+	if strcmpi(str, 'end_header')
 		break;
 	end
 	tokens = regexp(str,'\s+','split');
@@ -82,10 +82,10 @@ while (~feof(fid))
 		file_format = lower(tokens(2));	
 	elseif strcmpi(tokens(1), 'element')
 		if strcmpi(tokens(2),'vertex')
-			nvert = str2num(tokens{3});
+			nvert = str2double(tokens{3});
 			stage = 'vertex';
 		elseif strcmpi(tokens(2),'face')
-			nface = str2num(tokens{3});
+			nface = str2double(tokens{3});
 			stage = 'face';
 		end
 	elseif strcmpi(tokens(1), 'property')
