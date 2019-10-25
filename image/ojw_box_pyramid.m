@@ -21,7 +21,7 @@ if iscell(A)
     B = reshape(A, numel(A), 1);
     B{1,max_depths+1} = [];
     for a = 1:numel(A)
-        C = ojw_gaussian_pyramid(A{a}, max_depths, F);
+        C = ojw_box_pyramid(A{a}, max_depths);
         B(a,1:numel(C)) = C;
     end
     return
