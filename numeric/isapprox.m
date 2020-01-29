@@ -14,8 +14,9 @@
 %OUT:
 %   tf - Boolean indicating if A and B are approximately equal.
 %   d  - Maximum difference between A and B (proportion of the magnitude).
+%   D  - Per element different between A and B (proportion of the magnitude).
 
-function [tf, d] = isapprox(A, B, tol)
+function [tf, d, D] = isapprox(A, B, tol)
 tf = isequal(size(A), size(B));
 if ~tf
     if nargout == 0
@@ -37,8 +38,8 @@ if issparse(d2)
         d2 = full(d2(i));
     end
 end
-d = d ./ (d2 + 1);
-d = full(2 * max(abs(d(:))));
+D = abs(d ./ (d2 + 1));
+d = full(2 * max(D(:)));
 if nargin < 3
     if nargout == 0
         fprintf('Matrices differ by scale %g.\n', d);
