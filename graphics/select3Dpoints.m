@@ -64,10 +64,11 @@ xlim([0 1]);
 ylim([0 1]);
 axis off
 select3DpointsState.ax3 = axes('Position', [0 0 1 1]);
-select3DpointsState.blue = plot3(select3DpointsState.X(:,1), select3DpointsState.X(:,2), select3DpointsState.X(:,3), 'b.');
+select3DpointsState.blue = plot3(select3DpointsState.X(:,1), select3DpointsState.X(:,2), select3DpointsState.X(:,3), 'b.', 'MarkerSize', 1);
 hold on;
-select3DpointsState.red = plot3(NaN, NaN, NaN, 'r.');
+select3DpointsState.red = plot3(NaN, NaN, NaN, 'r.', 'MarkerSize', 1);
 axis equal off
+camtarget(median(select3DpointsState.X, 1)');
 
 % Set the callback, pass pointCloud to the callback function
 set(select3DpointsState.fig, 'WindowButtonUpFcn', @up, 'WindowButtonDownFcn', @down);
