@@ -56,6 +56,7 @@ uicontrol(bg,'Style',...
              'Position', [0 2 150 16], ...
              'HandleVisibility','off');
 set(bg, 'Visible', 'on');
+uicontrol('Style', 'pushbutton', 'String', 'Undo', 'Position', [2 72 70 15], 'HandleVisibility','off', 'Callback', @undo);
 
 % Create the plot
 select3DpointsState.ax2 = axes('Position', [0 0 1 1]);
@@ -91,6 +92,12 @@ set(select3DpointsState.blue, 'XData', X(:,1), 'YData', X(:,2), 'ZData', X(:,3))
 X = select3DpointsState.X(select3DpointsState.M,:);
 set(select3DpointsState.red, 'XData', X(:,1), 'YData', X(:,2), 'ZData', X(:,3));
 drawnow();
+end
+
+function undo(varargin)
+global select3DpointsState
+select3DpointsState.M = select3DpointsState.lastM;
+render();
 end
 
 function up(varargin)
