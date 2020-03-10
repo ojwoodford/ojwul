@@ -13,6 +13,9 @@
 %   X - DxM set of D-dimensional points to transform
 %   Y - DxN set of D-dimensional points to align to (which should be well
 %       distributed)
+%   initialize - Scalar, 0 (no initialization), 1 (try 4 starting
+%                positions), 2 (optimize 4 starting positions for 4
+%                iterations each).
 %
 %OUT:
 %   T - Dx(D+1) similarity transform matrix.
@@ -34,26 +37,26 @@ if nargin > 2 && initialize
     R = cat(3, diag([1 1 1 1]), diag([1 -1 -1 1]), diag([-1 1 -1 1]), diag([-1 -1 1 1]));
     for a = 4:-1:1
         d = T_ \ (R(:,:,a) * T);
-        d = d(1:end-1,:) / d(end,end);
-        [~, d] = find_closest(Xt * d(:,1:end-1)' + d(:,end)');
-        scores(a) = sum(d);
+        T__{a} = d(1:end-1,:) / d(end,end);
+        if initialize == 1
+            [~, d] = find_closest(Xt * T__{a}(:,1:end-1)' + T__{a}(:,end)');
+            scores(a) = sum(d);
+        else
+            [T__{a}, scores(a)] = run_iters(Xt, Yt, T__{a}, find_closest, [], 4);
+        end
     end
     
     % Pick the best
     [~, a] = min(scores);
-    T = T_ \ (R(:,:,a) * T);
-    T = T(1:3,:) / T(4,4);
+    T = T__{a};
 else
     % Start from the input
     T = eye(size(X, 1), size(X, 1)+1);
 end
-R = T(:,1:size(Y, 1))';
-t = T(:,end);
 
 % Debug rendering
-if nargin < 4
-    debug_vis = false;
-elseif debug_vis
+handle = [];
+if nargin > 3 && debug_vis
     figure();
     plot3(Yt(:,1), Yt(:,2), Yt(:,3), 'b.');
     hold on
@@ -61,14 +64,22 @@ elseif debug_vis
 end
 
 % Iterate until convergence
+T = run_iters(Xt, Yt, T, find_closest, handle, 100);
+end
+
+function [T, best_score] = run_iters(Xt, Yt, T, find_closest, handle, iters)
+R = T(:,1:end-1)';
+t = T(:,end);
 best_score = Inf;
-while true
+while iters > 0
+    iters = iters - 1;
+    
     % Compute the closest points from X to Y
     X_ = Xt * R + t';
     closest = find_closest(X_);
     
     % Debug rendering
-    if debug_vis
+    if ~isempty(handle)
         set(handle, 'XData', X_(:,1), 'YData', X_(:,2), 'ZData', X_(:,3));
         drawnow();
     end
