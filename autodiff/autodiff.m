@@ -264,7 +264,7 @@ classdef autodiff
             end
             c = a.value;
             c(c==0) = 1e-154;
-            c = autodiff(prod(a.value, dim), a.varind, sum(a.deriv .* shiftdim(prod(c, dim) .* (1 ./ c)), -1), dim+1);
+            c = autodiff(prod(a.value, dim), a.varind, sum(a.deriv .* shiftdim(prod(c, dim) .* (1 ./ c), -1), dim+1));
         end
         
         function c = select(a, b, M)
