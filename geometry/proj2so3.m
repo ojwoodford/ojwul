@@ -6,9 +6,5 @@
 % least squares way, s.t. B = argmin_{B in SO(3)} || B - A ||_F.
 
 function R = proj2so3(R)
-[U, D] = eig(R' * R);
-[D, I] = sort(diag(D), 'descend');
-D = 1 ./ sqrt(D);
-D(3) = D(3) * sign(det(R));
-U = U(:,I);
-R = R * U * diag(D) * U';
+R = proj2orthonormal(R);
+end
