@@ -16,7 +16,7 @@ function [Da, Ia, Db, Ib] = sqdist2closest(A, B)
 %    Ib - Indices of closest vectors from A.
 
 % Precompute some things to speed up
-if numel(A) > numel(B)
+if nargout > 2 && numel(A) > numel(B)
     flip = true;
     [A, B] = deal(B, A);
 else
@@ -31,30 +31,15 @@ Db = zeros(1, size(B, 2));
 Ib = zeros(size(Db));
 
 % Find distance to closest model points
-if flip || nargout > 2
-    if nargout > 2
-        Db = (B2 - A(:,1)' * B) + Da(1);
-        [Da(1), Ia(1)] = min(Db);
-        Ib(:) = 1;
-        for a = 2:size(A, 2)
-            D_ = (B2 - A(:,a)' * B) + Da(a);
-            [Da(a), Ia(a)] = min(D_);
-            Ib(D_ < Db) = a;
-            Db = min(Db, D_);
-        end
-    elseif nargout > 1
-        Db = (B2 - A(:,1)' * B) + Da(1);
-        Ib(:) = 1;
-        for a = 2:size(A, 2)
-            D_ = (B2 - A(:,a)' * B) + Da(a);
-            Ib(D_ < Db) = a;
-            Db = min(Db, D_);
-        end
-    else
-        Db = (B2 - A(:,1)' * B) + Da(1); 
-        for a = 2:size(A, 2)
-            Db = min(Db, (B2 - A(:,a)' * B) + Da(a));
-        end
+if nargout > 2
+    Db = (B2 - A(:,1)' * B) + Da(1);
+    [Da(1), Ia(1)] = min(Db);
+    Ib(:) = 1;
+    for a = 2:size(A, 2)
+        D_ = (B2 - A(:,a)' * B) + Da(a);
+        [Da(a), Ia(a)] = min(D_);
+        Ib(D_ < Db) = a;
+        Db = min(Db, D_);
     end
 elseif nargout > 1
     for a = 1:size(A, 2)
