@@ -14,13 +14,13 @@
 %
 % IN:
 %   I - HxWxC input image.
-%   filter - String denoting named filter ['Central', 'Prewitt', 'Sobel',
-%            'Simoncelli'] or scalar value determing the scale of the 
-%            gradient filter (essentially the amount of pre-smoothing to
-%            apply). If 'Simoncelli', the 7-tap values from Farid, H. and
-%            Simoncelli, E. "Differentiation of Discrete Multi-Dimensional
-%            Signals". IEEE Trans. Image Processing. 13(4): 496-508 (2004).
-%            are used.
+%   filter - String denoting named filter ['Bilinear', 'Central',
+%            'Prewitt', 'Sobel', 'Simoncelli'] or scalar value determing
+%            the scale of the gradient filter (essentially the amount of
+%            pre-smoothing to apply). If 'Simoncelli', the 7-tap values
+%            from Farid, H. and Simoncelli, E. "Differentiation of Discrete
+%            Multi-Dimensional Signals". IEEE Trans. Image Processing.
+%            13(4): 496-508 (2004) are used.
 %   mcm - multi-channel method: 'dizenzo' (default), 'norm', 'pca',
 %                               'rgb2gray', 'none'.
 %
@@ -59,6 +59,10 @@ end
 
 if ischar(filter)
     switch lower(filter)
+        case 'bilinear'
+            % Gradient resulting from bilinear interpolation
+            g = [1 1];
+            gp = [1 -1];
         case 'central'
             % Central differences
             g = 1;
@@ -78,8 +82,8 @@ if ischar(filter)
         otherwise
             error('Filter %s unrecognized', filter);
     end
-    X = floor(numel(gp) * 0.5);
-    X = -X:X;
+    X = 1:numel(gp);
+    X = X - mean(X);
 else
     % Determine necessary filter support (for Gaussian).
     X = max(floor((5 / 2) * filter), 1);
