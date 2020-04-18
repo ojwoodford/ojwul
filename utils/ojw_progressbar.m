@@ -139,13 +139,18 @@ else
     if ishandle(info.bar)
         waitbar(proportion, info.bar, newtitle);
     else
-        info.bar = waitbar(proportion, newtitle, 'Name', tag_title);
+	    % Create the waitbar
+	    info.bar = waitbar(proportion, newtitle, 'Name', tag_title);
+    
+	    % Ensure it gets closed when the function exits
+	    [~, varname] = fileparts(tempname());
+	    assignin('caller', varname, onCleanup(@() ojw_progressbar(tag, 1)));
     end
 end
 
 % Update our global variable with the changes to this tag
 ojw_progressbar_data.(tag) = info;
-return
+end
 
 % Time string function
 function str = timestr(t)
@@ -160,4 +165,4 @@ elseif m > 0
 else
     str = sprintf('%2.1fs', s);
 end
-return
+end
