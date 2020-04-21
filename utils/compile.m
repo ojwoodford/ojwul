@@ -368,13 +368,16 @@ end
 % Create the compiler options for OpenMP
 function [str, co] = openmp(debug)
 str = '';
-if debug
-    co = '';
-else
+co = '';
+if ~debug
     if ispc()
         co = '/openmp';
+    elseif ismac()
+        co = '-Xpreprocessor -fopenmp';
+        str = get_user_path('OpenMP', @(p) exist([p 'include/omp.h'], 'file'), 1);
+        str = sprintf('-I"%sinclude" -L"%s/sys/os/maci64" -liomp5', str, matlabroot());
     else
-        co = ''; %'-fopenmp';
+        co = '-fopenmp';
     end
 end
 end

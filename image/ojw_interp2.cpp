@@ -22,11 +22,11 @@ template<class Method, class U, class V> static inline void wrapper_func4(U *B, 
 	// For each of the interpolation points
     int i;
     if (G == NULL) {
-#pragma omp parallel for if (num_points > 1000) num_threads(2) default(shared) private(i)
+#pragma omp parallel for if (num_points > 1000) num_threads(omp_get_num_procs()) schedule(dynamic, 512) default(shared) private(i)
         for (i = 0; i < num_points; ++i)
             im.lookup(&B[i], Y[i]-static_cast<V>(1.0), X[i]-static_cast<V>(1.0), num_points); // Do the interpolation
     } else {
-#pragma omp parallel for if (num_points > 1000) num_threads(2) default(shared) private(i)
+#pragma omp parallel for if (num_points > 1000) num_threads(omp_get_num_procs()) schedule(dynamic, 512) default(shared) private(i)
         for (i = 0; i < num_points; ++i)
             im.lookup_grad(&B[i], &G[i*2], Y[i]-static_cast<V>(1.0), X[i]-static_cast<V>(1.0), num_points, num_points*2); // Do the interpolation
     } 
