@@ -48,25 +48,29 @@ if iscell(sourceList)
     if nargin > 1 && isequal(varargin{1}, 'compile')
         % Standard compilation behaviour
         [varargout{1:nargout}] = ojw_mexcompile(funcName, sourceList, varargin{2:end});
+        
+        % Return to the original directory
+        cd(currDir);
     else
         % Function called without first being compiled
         fprintf('Missing mex file: %s.%s. Will attempt to compile and run.\n', funcName, mexext);
         retval = ojw_mexcompile(funcName, sourceList);
-        if retval > 0
-            S = which(funcName, '-all'); % Make sure MATLAB registers the new function
-            [varargout{1:nargout}] = fevals(funcName, varargin{:});
-        else
-            % Return to the original directory
-            cd(currDir);
-            
+        
+        % Return to the original directory
+        cd(currDir);
+        
+        if retval <= 0
             % Flag the error
             error('Unable to compile %s.', funcName);
         end
+        
+        % Make sure MATLAB registers the new function
+        S = which(funcName, '-all');
+        
+        % Call the now compiled function again
+        [varargout{1:nargout}] = fevals(funcName, varargin{:});
     end
-    
-    % Return to the original directory
-    cd(currDir);
-    return
+    return;
 end
 
 % Check for compile flags
