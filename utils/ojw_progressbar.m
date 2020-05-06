@@ -41,7 +41,7 @@ retval = 0;
 % Ensure the global data structure exists
 persistent ojw_progressbar_data
 if isempty(ojw_progressbar_data)
-  ojw_progressbar_data.text_version = ~usejava('awt');
+    ojw_progressbar_data.text_version = ~usejava('desktop');
 end
 
 % Record the time
