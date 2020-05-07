@@ -117,7 +117,7 @@ switch retval
         newtitle = sprintf('Elapsed: %s', timestr(t_elapsed));
         if proportion > 0.01 || t_elapsed > 30
             if t_remaining < 600
-                newtitle = sprintf('%s, Remaining: %s', newtitle, timestr(t_remaining));
+                newtitle = sprintf('%s, Remaining: %s          ', newtitle, timestr(t_remaining));
             else
                 newtitle = sprintf('%s, ETA: %s', newtitle, datestr(datenum(curr_time) + (t_remaining * 1.15741e-5), 0));
             end
