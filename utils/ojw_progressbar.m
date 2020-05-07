@@ -1,6 +1,6 @@
 %OJW_PROGRESSBAR  Simple progress bar implementation
 %
-%   retval = ojw_progressbar(tag, proportion[, min_update_interval])
+%   [this, retval] = ojw_progressbar(tag, proportion[, min_update_interval])
 %
 % Starts, updates and closes a progress bar according to the proportion of
 % time left.
@@ -27,28 +27,42 @@ classdef ojw_progressbar < handle
         min_update;
         prop;
         start_prop;
+        next_prop;
         timer;
         last_update;
         text_version;
         tag;
         tag_title;
+        total;
+        inverse_total;
     end
     methods
-        function [this, retval] = ojw_progressbar(tag, proportion, min_update_interval)
+        function [this, retval] = ojw_progressbar(tag, proportion, total, min_update_interval)
             % Check the input arguments
             if nargin < 2
                 error('At least 2 input arguments expected');
             end
             if ~ischar(tag)
-              error('First argument should be a string');
+                error('First argument should be a string');
             end
             if ~isscalar(proportion) || proportion < 0
-              error('Second argument should be a non-negative scalar');
+                error('Second argument should be a non-negative scalar');
             end
             if nargin > 2
-                if ~isscalar(min_update_interval) || min_update_interval < 0
+                if ~isscalar(total) || total < 0
                     error('Third argument should be a non-negative scalar');
                 end
+                total = double(total);
+            else
+                total = 1; % Default total proportion
+            end
+            if nargin > 3
+                if ~isscalar(min_update_interval) || min_update_interval < 0
+                    error('Fourth argument should be a non-negative scalar');
+                end
+                min_update_interval = double(min_update_interval);
+            else
+                min_update_interval = 0.5; % Default seconds between updates
             end
 
             % Record the time
@@ -61,7 +75,7 @@ classdef ojw_progressbar < handle
             v = ojw_progressbar.GetSetPersistent(tag);
             if isempty(v)
                 % No tag by this name
-                if proportion >= 1
+                if proportion >= total
                     % No need to create one
                     retval = 0;
                     return;
@@ -69,13 +83,16 @@ classdef ojw_progressbar < handle
 
                 % Create a data structure for this tag
                 this.bar = [];
-                this.min_update = 0.5; % Default seconds between updates
+                this.min_update = min_update_interval; % Default seconds between updates
                 this.prop = proportion;
                 this.start_prop = proportion;
+                this.next_prop = proportion;
                 this.timer = curr_time;
                 this.last_update = curr_time;
                 this.tag_title = tag_title;
                 this.tag = tag;
+                this.total = total;
+                this.inverse_total = 1 / total;
                 this.text_version = ojw_progressbar.GetSetPersistent('text_version');
                 
                 % Update our global variable with the changes to this tag
@@ -85,12 +102,18 @@ classdef ojw_progressbar < handle
                 [~, varname] = fileparts(tempname());
                 assignin('caller', varname, onCleanup(@() ojw_progressbar(tag, 1)));
             else
-                % Cache the data structure
+                % Use the cached the data structure
                 this = v;
             
-                % Update the minimum update interval if a new one is given
+                % Update the total if a new one is given
                 if nargin > 2
-                    this.min_update = min_update_interval;
+                    this.total = total;
+                    this.inverse_total = 1 / total;
+                    this.next_prop = this.prop;
+                    % Update the minimum update interval if a new one is given
+                    if nargin > 3
+                        this.min_update = min_update_interval;
+                    end
                 end
             end
 
@@ -100,13 +123,15 @@ classdef ojw_progressbar < handle
         
         % Function for direct updating
         function retval = update(this, proportion, curr_time)
-            if nargin < 3
-                curr_time = clock();
-                proportion = double(proportion); % Must be a double
+            % Check for a fast (i.e. no) update
+            if proportion < this.next_prop && proportion >= this.prop
+                retval = 1;
+                return;
             end
-            retval = 0;
 
-            if proportion >= 1
+            % Check for an end to the progress bar
+            retval = 0;
+            if proportion >= this.total
                 % Close the progress bar
                 if this.text_version
                     fprintf([repmat(' ', 1, 200) repmat('\b', 1, 200)]);
@@ -115,47 +140,50 @@ classdef ojw_progressbar < handle
                     drawnow();
                 end
                 ojw_progressbar.GetSetPersistent(this.tag, []);
-                this.prop = 1;
+                this.prop = this.total;
                 return;
+            end
+            
+            if nargin < 3
+                curr_time = clock();
+                proportion = double(proportion); % Must be a double
             end
 
             % Check to see if we haven't started again
-            if proportion < this.prop
-                % Reset the information
-                this.start_prop = proportion;
-                this.timer = curr_time;
-                this.last_update = this.timer;
-
-                % Update the progress bar
+            if proportion < this.prop || proportion == this.start_prop
                 retval = 1;
             elseif etime(curr_time, this.last_update) >= this.min_update
                 % An update of the progress bar is required   
-                if (proportion - this.start_prop) > 0
-                    retval = 2;
-                else
-                    retval = 1;
-                end
+                retval = 1 + (proportion > this.start_prop);
+            else
+                % No update required
+                return;
             end
 
-            switch retval
-                case 0
-                    return;
-                case 2
-                    this.last_update = curr_time;
-                    t_elapsed = etime(curr_time, this.timer);
-                    t_remaining = ((1 - proportion) * t_elapsed) / (proportion - this.start_prop);
-                    newtitle = sprintf('Elapsed: %s', timestr(t_elapsed));
-                    if proportion > 0.01 || t_elapsed > 30
-                        if t_remaining < 600
-                            newtitle = sprintf('%s, Remaining: %s          ', newtitle, timestr(t_remaining));
-                        else
-                            newtitle = sprintf('%s, ETA: %s', newtitle, datestr(datenum(curr_time) + (t_remaining * 1.15741e-5), 0));
-                        end
-                    end
-                case 1
-                    newtitle = 'Starting...';
-            end
             this.prop = proportion;
+            proportion = proportion * this.inverse_total;
+            if retval == 2
+                this.last_update = curr_time;
+                t_elapsed = etime(curr_time, this.timer);
+                prop_done = this.prop - this.start_prop;
+                t_remaining = ((this.total - this.prop) * t_elapsed) / prop_done;
+                this.next_prop = min(this.prop + prop_done * this.min_update * 1.1 / t_elapsed, this.total);
+                newtitle = sprintf('Elapsed: %s', timestr(t_elapsed));
+                if proportion > 0.01 || t_elapsed > 30
+                    if t_remaining < 600
+                        newtitle = sprintf('%s, Remaining: %s          ', newtitle, timestr(t_remaining));
+                    else
+                        newtitle = sprintf('%s, ETA: %s', newtitle, datestr(datenum(curr_time) + (t_remaining * 1.15741e-5), 0));
+                    end
+                end
+            else
+                % Reset the information
+                this.start_prop = this.prop;
+                this.next_prop = this.prop;
+                this.timer = curr_time;
+                this.last_update = this.timer;
+                newtitle = 'Starting...';
+            end
 
             % Update the waitbar
             if this.text_version
@@ -163,7 +191,6 @@ classdef ojw_progressbar < handle
                 proportion = floor(proportion * 50);
                 str = sprintf('  %s |%s%s| %s', this.tag_title, repmat('#', 1, proportion), repmat(' ', 1, 50 - proportion), newtitle);
                 fprintf([str repmat('\b', 1, numel(str))]);
-                drawnow();
             else
                 % Graphics version
                 if ishandle(this.bar)
@@ -173,6 +200,7 @@ classdef ojw_progressbar < handle
                     this.bar = waitbar(proportion, newtitle, 'Name', this.tag_title);
                 end
             end
+            drawnow();
         end
     end
     methods (Static = true, Access = private)
