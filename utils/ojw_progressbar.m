@@ -100,7 +100,7 @@ classdef ojw_progressbar < handle
                 
                 % Ensure it gets closed when the function exits
                 [~, varname] = fileparts(tempname());
-                assignin('caller', varname, onCleanup(@() ojw_progressbar(tag, 1)));
+                assignin('caller', varname, onCleanup(@() ojw_progressbar(tag, Inf)));
             else
                 % Use the cached the data structure
                 this = v;
