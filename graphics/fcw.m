@@ -179,6 +179,14 @@ switch eventData.Key
         fcw_zoom([], [0 -step], cax);
     case {'k', 'a'}
         fcw_zoom([], [0 step], cax);
+    case 'l'
+        fcw_rot([], [0 step], cax);
+    case 'p'
+        fcw_rot([], [0 -step], cax);
+    case 'w'
+        fcw_rot([], [-step 0], cax);
+    case 'q'
+        fcw_rot([], [step 0], cax);
     case 'r'
         % Reset all the axes
         for h = findobj(fig, 'Type', 'axes', '-depth', 1)'

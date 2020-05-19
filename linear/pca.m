@@ -7,7 +7,7 @@
 %
 % OUT:
 %    T - Mx(M+1) Projection matrix for PCA transformation
-%    Y - MxN matrix of transformed vectors, where Y = T * [X; ones(1, N].
+%    Y - MxN matrix of transformed vectors, where Y = T * [X; ones(1, N)].
 %    V - Mx1 list of eigen values associated with each dimension.
 
 function [T, X, V] = pca(X)
