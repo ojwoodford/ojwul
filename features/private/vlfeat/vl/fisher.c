@@ -545,7 +545,7 @@ VL_XCAT(_vl_fisher_encode_, SFX)
  ** @sa @ref fisher
  **/
 
-VL_EXPORT vl_size
+vl_size
 vl_fisher_encode
 (void * enc, vl_type dataType,
  void const * means, vl_size dimension, vl_size numClusters,

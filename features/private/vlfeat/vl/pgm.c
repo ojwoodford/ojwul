@@ -121,7 +121,7 @@ remove_blanks(FILE* f)
  ** ::vl_pgm_get_bpp()).
  **/
 
-VL_EXPORT vl_size
+vl_size
 vl_pgm_get_npixels (VlPgmImage const *im)
 {
   return im->width * im->height ;
@@ -136,7 +136,7 @@ vl_pgm_get_npixels (VlPgmImage const *im)
  ** PGM image @a im.
  **/
 
-VL_EXPORT vl_size
+vl_size
 vl_pgm_get_bpp (VlPgmImage const *im)
 {
   return (im->max_value >= 256) + 1 ;
@@ -157,7 +157,7 @@ vl_pgm_get_bpp (VlPgmImage const *im)
  ** meta section of the PGM file.
  **/
 
-VL_EXPORT int
+int
 vl_pgm_extract_head (FILE* f, VlPgmImage *im)
 {
   char magic [2] ;
@@ -258,7 +258,6 @@ vl_pgm_extract_head (FILE* f, VlPgmImage *im)
  ** ::vl_pgm_get_bpp() bytes large.
  **/
 
-VL_EXPORT
 int
 vl_pgm_extract_data (FILE* f, VlPgmImage const *im, void *data)
 {
@@ -332,7 +331,6 @@ vl_pgm_extract_data (FILE* f, VlPgmImage const *im, void *data)
  ** @return error code.
  **/
 
-VL_EXPORT
 int
 vl_pgm_insert(FILE* f, VlPgmImage const *im, void const *data)
 {
@@ -390,7 +388,6 @@ vl_pgm_insert(FILE* f, VlPgmImage const *im, void const *data)
  ** @bug Only PGM files with 1 BPP are supported.
  **/
 
-VL_EXPORT
 int vl_pgm_read_new (char const *name, VlPgmImage *im, vl_uint8** data)
 {
   int err = 0 ;
@@ -439,7 +436,6 @@ int vl_pgm_read_new (char const *name, VlPgmImage *im, vl_uint8** data)
  ** @bug Only PGM files with 1 BPP are supported.
  **/
 
-VL_EXPORT
 int vl_pgm_read_new_f (char const *name,  VlPgmImage *im, float** data)
 {
   int err = 0 ;
@@ -476,7 +472,6 @@ int vl_pgm_read_new_f (char const *name,  VlPgmImage *im, float** data)
  ** vl_pgm_insert().
  **/
 
-VL_EXPORT
 int vl_pgm_write (char const *name, vl_uint8 const* data, int width, int height)
 {
   int err = 0 ;
@@ -513,7 +508,6 @@ int vl_pgm_write (char const *name, vl_uint8 const* data, int width, int height)
  ** vl_pgm_insert().
  **/
 
-VL_EXPORT
 int vl_pgm_write_f (char const *name, float const* data, int width, int height)
 {
   int err = 0 ;

@@ -584,7 +584,6 @@ vl_aib_delete (VlAIB * aib)
  **
  **/
 
-VL_EXPORT
 void vl_aib_process(VlAIB *aib)
 {
     vl_uint i, besti, bestj, newnode, nodei, nodej;

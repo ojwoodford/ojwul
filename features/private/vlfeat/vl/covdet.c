@@ -1202,7 +1202,7 @@ v CMP *(pt - yo - xo) )
  ** @return a flat indicating whether the extrema refinement was stable.
  **/
 
-VL_EXPORT vl_bool
+vl_bool
 vl_refine_local_extreum_3 (VlCovDetExtremum3 * refined,
                            float const * map,
                            vl_size width, vl_size height, vl_size depth,
@@ -1328,7 +1328,7 @@ vl_refine_local_extreum_3 (VlCovDetExtremum3 * refined,
  ** @return a flat indicating whether the extrema refinement was stable.
  **/
 
-VL_EXPORT vl_bool
+vl_bool
 vl_refine_local_extreum_2 (VlCovDetExtremum2 * refined,
                            float const * map,
                            vl_size width, vl_size height,

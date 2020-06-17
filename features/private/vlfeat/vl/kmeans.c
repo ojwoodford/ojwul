@@ -382,7 +382,7 @@ Elkan's while retaining a similar solution accuracy.
  ** does not change the other configuration parameters.
  **/
 
-VL_EXPORT void
+void
 vl_kmeans_reset (VlKMeans * self)
 {
   self->numCenters = 0 ;
@@ -402,7 +402,7 @@ vl_kmeans_reset (VlKMeans * self)
  ** @return new KMeans object instance.
 **/
 
-VL_EXPORT VlKMeans *
+VlKMeans *
 vl_kmeans_new (vl_type dataType,
                VlVectorComparisonType distance)
 {
@@ -430,7 +430,7 @@ vl_kmeans_new (vl_type dataType,
  ** @return new copy.
  **/
 
-VL_EXPORT VlKMeans *
+VlKMeans *
 vl_kmeans_new_copy (VlKMeans const * kmeans)
 {
   VlKMeans * self = vl_malloc(sizeof(VlKMeans)) ;
@@ -474,7 +474,7 @@ vl_kmeans_new_copy (VlKMeans const * kmeans)
  ** by ::vl_kmeans_new.
  **/
 
-VL_EXPORT void
+void
 vl_kmeans_delete (VlKMeans * self)
 {
   vl_kmeans_reset (self) ;
@@ -1802,7 +1802,7 @@ VL_XCAT(_vl_kmeans_refine_centers_, SFX)
  ** @param numCenters number of centers.
  **/
 
-VL_EXPORT void
+void
 vl_kmeans_set_centers
 (VlKMeans * self,
  void const * centers,
@@ -1837,7 +1837,7 @@ vl_kmeans_set_centers
  ** the data @a data.
  **/
 
-VL_EXPORT void
+void
 vl_kmeans_init_centers_with_rand_data
 (VlKMeans * self,
  void const * data,
@@ -1870,7 +1870,7 @@ vl_kmeans_init_centers_with_rand_data
  ** @param numCenters number of centers.
  **/
 
-VL_EXPORT void
+void
 vl_kmeans_init_centers_plus_plus
 (VlKMeans * self,
  void const * data,
@@ -1903,7 +1903,7 @@ vl_kmeans_init_centers_plus_plus
  ** @param numData number of data points to quantize.
  **/
 
-VL_EXPORT void
+void
 vl_kmeans_quantize
 (VlKMeans * self,
  vl_uint32 * assignments,
@@ -1943,7 +1943,7 @@ vl_kmeans_quantize
  ** ANN procedure can find a better assignment of the existing one.
  **/
 
-VL_EXPORT void
+void
 vl_kmeans_quantize_ann
 (VlKMeans * self,
  vl_uint32 * assignments,
@@ -1980,7 +1980,7 @@ vl_kmeans_quantize_ann
  ** setting them.
  **/
 
-VL_EXPORT double
+double
 vl_kmeans_refine_centers
 (VlKMeans * self,
  void const * data,
@@ -2020,7 +2020,7 @@ vl_kmeans_refine_centers
  ** energy is retained.
  **/
 
-VL_EXPORT double
+double
 vl_kmeans_cluster (VlKMeans * self,
                    void const * data,
                    vl_size dimension,

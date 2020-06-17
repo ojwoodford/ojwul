@@ -1457,7 +1457,7 @@ vl_toc (void)
  ** There is one such generator per thread.
  **/
 
-VL_EXPORT VlRand *
+VlRand *
 vl_get_rand (void)
 {
   return &vl_get_thread_specific_state()->rand ;

@@ -177,7 +177,7 @@ learning rate. At the <em>t</em>-iteration, the algorithm:
 
 #include "float.th"
 
-VL_EXPORT void
+void
 VL_XCAT(vl_pegasos_train_binary_svm_,SFX)(T *  model,
                                           T const * data,
                                           vl_size dimension,

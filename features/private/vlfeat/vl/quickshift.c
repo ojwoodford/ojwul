@@ -226,7 +226,6 @@ vl_quickshift_inner(vl_qs_type const * I,
  ** @c channels * @c width* @c height + @c row + @c height * @c col.
  **/
 
-VL_EXPORT
 VlQS *
 vl_quickshift_new(vl_qs_type const * image, int height, int width,
                        int channels)
@@ -254,7 +253,6 @@ vl_quickshift_new(vl_qs_type const * image, int height, int width,
  ** @param q quick shift object.
  **/
 
-VL_EXPORT
 void vl_quickshift_process(VlQS * q)
 {
   vl_qs_type const *I = q->image;

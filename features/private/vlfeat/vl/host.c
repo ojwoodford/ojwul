@@ -499,7 +499,7 @@ _vl_x86cpu_info_to_string_copy (VlX86CpuInfo const *self)
  ** by ::vl_free.
  **/
 
-VL_EXPORT char *
+char *
 vl_static_configuration_to_string_copy ()
 {
   char const * hostString =
