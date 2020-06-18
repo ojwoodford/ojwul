@@ -79,7 +79,7 @@ contain the result, and the operation can be repeated.
  ** it cannot be matched to any of the supported protocols.
  **/
 
-VL_EXPORT char *
+char *
 vl_string_parse_protocol (char const *string, int *protocol)
 {
   char const * cpt ;
@@ -122,7 +122,7 @@ vl_string_parse_protocol (char const *string, int *protocol)
  ** string.
  **/
 
-VL_EXPORT char const *
+char const *
 vl_string_protocol_name (int protocol)
 {
   switch (protocol) {
@@ -159,7 +159,7 @@ vl_string_protocol_name (int protocol)
  ** @sa @ref vl-stringop-err.
  **/
 
-VL_EXPORT vl_size
+vl_size
 vl_string_basename (char * destination,
                     vl_size destinationSize,
                     char const * source,
@@ -210,7 +210,7 @@ vl_string_basename (char * destination,
  ** @sa @ref vl-stringop-err.
  **/
 
-VL_EXPORT vl_size
+vl_size
 vl_string_replace_wildcard (char * destination,
                             vl_size destinationSize,
                             char const * source,
@@ -270,7 +270,7 @@ vl_string_replace_wildcard (char * destination,
  ** @sa @ref vl-stringop-err.
  **/
 
-VL_EXPORT vl_size
+vl_size
 vl_string_copy (char * destination, vl_size destinationSize,
                 char const * source)
 {
@@ -307,7 +307,7 @@ vl_string_copy (char * destination, vl_size destinationSize,
  ** @sa @ref vl-stringop-err.
  **/
 
-VL_EXPORT vl_size
+vl_size
 vl_string_copy_sub (char * destination,
                     vl_size destinationSize,
                     char const * beginning,
@@ -341,7 +341,7 @@ vl_string_copy_sub (char * destination,
  ** in the substring from @a beg to @a end (the latter not being included).
  **/
 
-VL_EXPORT char *
+char *
 vl_string_find_char_rev (char const *beginning, char const* end, char c)
 {
   while (end -- != beginning) {
@@ -358,7 +358,7 @@ vl_string_find_char_rev (char const *beginning, char const* end, char c)
  ** @return string length.
  **/
 
-VL_EXPORT vl_size
+vl_size
 vl_string_length (char const *string)
 {
   vl_uindex i ;
@@ -373,7 +373,7 @@ vl_string_length (char const *string)
  ** @return an integer =,<,> 0 if @c string1 =,<,> @c string2
  **/
 
-VL_EXPORT int
+int
 vl_string_casei_cmp (const char * string1, const char * string2)
 {
   while (tolower((char unsigned)*string1) ==
@@ -405,7 +405,7 @@ vl_string_casei_cmp (const char * string1, const char * string2)
  ** @sa vl-stringop-enumeration
  **/
 
-VL_EXPORT VlEnumerator *
+VlEnumerator *
 vl_enumeration_get (VlEnumerator const *enumeration, char const *name)
 {
   assert(enumeration) ;
@@ -427,7 +427,7 @@ vl_enumeration_get (VlEnumerator const *enumeration, char const *name)
  **  @sa vl-stringop-enumeration
  **/
 
-VL_EXPORT VlEnumerator *
+VlEnumerator *
 vl_enumeration_get_casei (VlEnumerator const *enumeration, char const *name)
 {
   assert(enumeration) ;
@@ -449,7 +449,7 @@ vl_enumeration_get_casei (VlEnumerator const *enumeration, char const *name)
  ** @sa vl-stringop-enumeration
  **/
 
-VL_EXPORT VlEnumerator *
+VlEnumerator *
 vl_enumeration_get_by_value (VlEnumerator const *enumeration, vl_index value)
 {
   assert(enumeration) ;

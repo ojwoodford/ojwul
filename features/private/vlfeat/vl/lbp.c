@@ -245,7 +245,7 @@ vl_lbp_delete(VlLbp * self) {
  ** @see ::vl_lbp_new().
  **/
 
-VL_EXPORT vl_size vl_lbp_get_dimension(VlLbp * self)
+vl_size vl_lbp_get_dimension(VlLbp * self)
 {
   return self->dimension ;
 }
@@ -266,7 +266,7 @@ VL_EXPORT vl_size vl_lbp_get_dimension(VlLbp * self)
  ** for @c numRows.
  **/
 
-VL_EXPORT void
+void
 vl_lbp_process (VlLbp * self,
                 float * features,
                 float * image, vl_size width, vl_size height,

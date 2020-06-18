@@ -175,7 +175,6 @@ vl_rodrigues(double* R_pt, double* dR_pt, const double* om_pt)
  ** and stored into the matrix @a dR_pt.
  **/
 
-VL_EXPORT
 void vl_irodrigues(double* om_pt, double* dom_pt, const double* R_pt)
 {
   /*

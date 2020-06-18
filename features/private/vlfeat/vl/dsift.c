@@ -342,7 +342,7 @@ _vl_dsift_free_buffers (VlDsiftFilter* self)
  ** @internal @brief Updates internal buffers to current geometry
  **/
 
-VL_EXPORT void
+void
 _vl_dsift_update_buffers (VlDsiftFilter * self)
 {
   int x1 = self->boundMinX ;
@@ -411,7 +411,7 @@ _vl_dsift_alloc_buffers (VlDsiftFilter* self)
  ** @return new filter.
  **/
 
-VL_EXPORT VlDsiftFilter *
+VlDsiftFilter *
 vl_dsift_new (int imWidth, int imHeight)
 {
   VlDsiftFilter * self = vl_malloc (sizeof(VlDsiftFilter)) ;
@@ -463,7 +463,7 @@ vl_dsift_new (int imWidth, int imHeight)
  ** The descriptor geometry matches the standard SIFT descriptor.
  **/
 
-VL_EXPORT VlDsiftFilter *
+VlDsiftFilter *
 vl_dsift_new_basic (int imWidth, int imHeight, int step, int binSize)
 {
   VlDsiftFilter* self = vl_dsift_new(imWidth, imHeight) ;
@@ -480,7 +480,7 @@ vl_dsift_new_basic (int imWidth, int imHeight, int step, int binSize)
  ** @param self DSIFT filter.
  **/
 
-VL_EXPORT void
+void
 vl_dsift_delete (VlDsiftFilter * self)
 {
   _vl_dsift_free_buffers (self) ;

@@ -116,7 +116,7 @@ the terms of the BSD license (see the COPYING file).
  ** @see ::vl_imconvcol_vd
  **/
 
-VL_EXPORT void
+void
 VL_XCAT(vl_imconvcol_v, SFX)
 (T* dst, vl_size dst_stride,
  T const* src,
@@ -325,7 +325,7 @@ VL_XCAT(vl_imconvcol_v, SFX)
  ** @see ::vl_image_distance_transform_d
  **/
 
-VL_EXPORT void
+void
 VL_XCAT(vl_image_distance_transform_,SFX)
 (T const * image,
  vl_size numColumns,
@@ -507,7 +507,7 @@ VL_XCAT(vl_image_distance_transform_,SFX)
  ** @see ::vl_imconvcoltri_d()
  **/
 
-VL_EXPORT void
+void
 VL_XCAT(vl_imconvcoltri_, SFX)
 (T * dest, vl_size destStride,
  T const * image,
@@ -641,7 +641,7 @@ VL_XCAT(_vl_new_gaussian_fitler_,SFX)(vl_size *size, double sigma)
   return filter ;
 }
 
-VL_EXPORT void
+void
 VL_XCAT(vl_imsmooth_, SFX)
 (T * smoothed, vl_size smoothedStride,
  T const *image, vl_size width, vl_size height, vl_size stride,
@@ -719,7 +719,7 @@ VL_XCAT(vl_imsmooth_, SFX)
  ** @see ::vl_imgradient_d
  **/
 
-VL_EXPORT void
+void
 VL_XCAT(vl_imgradient_, SFX)
 (T * xGradient, T * yGradient,
  vl_size gradWidthStride, vl_size gradHeightStride,
@@ -871,7 +871,7 @@ VL_XCAT(vl_imgradient_, SFX)
 
 #if (FLT == VL_TYPE_FLOAT || FLT == VL_TYPE_DOUBLE)
 
-VL_EXPORT void
+void
 VL_XCAT(vl_imgradient_polar_, SFX)
 (T * gradientModulus, T * gradientAngle,
  vl_size gradientHorizontalStride, vl_size gradHeightStride,
@@ -1038,7 +1038,7 @@ pgrad_angl += gradientHorizontalStride ;                             \
  ** @see ::vl_imintegral_d.
  **/
 
-VL_EXPORT void
+void
 VL_XCAT(vl_imintegral_, SFX)
 (T * integral, vl_size integralStride,
  T const * image,

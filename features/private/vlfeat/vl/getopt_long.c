@@ -70,7 +70,7 @@ int    optreset ;
  ** @remark The function is currently <em>not</em> thread safe.
  **/
 
-VL_EXPORT int
+int
 getopt_long(int argc, char *const argv[],
             const char *optstring,
             const struct option * longopts,

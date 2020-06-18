@@ -19,7 +19,7 @@ the terms of the BSD license (see the COPYING file).
  ** @return number of elements.
  **/
 
-VL_EXPORT vl_size
+vl_size
 vl_array_get_num_elements (VlArray const * self)
 {
   vl_size numElements = 1 ;
@@ -47,7 +47,7 @@ vl_array_get_num_elements (VlArray const * self)
  ** the necessary memory for storage.
  **/
 
-VL_EXPORT VlArray *
+VlArray *
 vl_array_init (VlArray* self, vl_type type,
                vl_size numDimensions, vl_size const * dimensions)
 {
@@ -72,7 +72,7 @@ vl_array_init (VlArray* self, vl_type type,
  ** specified buffer.
  **/
 
-VL_EXPORT VlArray *
+VlArray *
 vl_array_init_envelope (VlArray * self, void * data, vl_type type,
                         vl_size numDimensions, vl_size const * dimensions)
 {
@@ -93,7 +93,7 @@ vl_array_init_envelope (VlArray * self, void * data, vl_type type,
  ** @param numColumns number of columns.
  **/
 
-VL_EXPORT VlArray *
+VlArray *
 vl_array_init_matrix (VlArray * self, vl_type type, vl_size numRows, vl_size numColumns)
 {
   vl_size dimensions [2] = {numRows, numColumns} ;
@@ -108,7 +108,7 @@ vl_array_init_matrix (VlArray * self, vl_type type, vl_size numRows, vl_size num
  ** @param numColumns number of columns.
  **/
 
-VL_EXPORT VlArray *
+VlArray *
 vl_array_init_matrix_envelope (VlArray * self, void * data,
                                 vl_type type, vl_size numRows, vl_size numColumns)
 {
@@ -120,7 +120,7 @@ vl_array_init_matrix_envelope (VlArray * self, void * data,
  ** @param self array.
  **/
 
-VL_EXPORT void
+void
 vl_array_dealloc (VlArray * self)
 {
   if (! self->isEnvelope) {
@@ -145,7 +145,7 @@ vl_array_dealloc (VlArray * self)
  ** the necessary memory for storage.
  **/
 
-VL_EXPORT VlArray *
+VlArray *
 vl_array_new (vl_type type, vl_size numDimensions, vl_size const * dimensions)
 {
   VlArray * self = vl_malloc(sizeof(VlArray)) ;
@@ -158,7 +158,7 @@ vl_array_new (vl_type type, vl_size numDimensions, vl_size const * dimensions)
  ** @param numColumns number of columns.
  **/
 
-VL_EXPORT VlArray *
+VlArray *
 vl_array_new_matrix (vl_type type, vl_size numRows, vl_size numColumns)
 {
   vl_size dimensions [2] = {numRows, numColumns} ;
@@ -172,7 +172,7 @@ vl_array_new_matrix (vl_type type, vl_size numRows, vl_size numColumns)
  ** @param dimensions dimensions.
  **/
 
-VL_EXPORT VlArray *
+VlArray *
 vl_array_new_envelope (void * data, vl_type type,
                        vl_size numDimensions, vl_size const * dimensions)
 {
@@ -187,7 +187,7 @@ vl_array_new_envelope (void * data, vl_type type,
  ** @param numColumns number of columns.
  **/
 
-VL_EXPORT VlArray *
+VlArray *
 vl_array_new_matrix_envelope (void * data, vl_type type, vl_size numRows, vl_size numColumns)
 {
   vl_size dimensions [2] = {numRows, numColumns} ;
@@ -198,7 +198,7 @@ vl_array_new_matrix_envelope (void * data, vl_type type, vl_size numRows, vl_siz
  ** @param self array.
  **/
 
-VL_EXPORT void
+void
 vl_array_delete (VlArray * self)
 {
   vl_array_dealloc(self) ;

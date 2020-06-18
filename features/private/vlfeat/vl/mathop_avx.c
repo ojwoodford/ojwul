@@ -65,7 +65,7 @@ VL_XCAT(_vl_vhsum_avx_, SFX)(VTYPEavx x)
   return acc ;
 }
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_distance_l2_avx_, SFX)
 (vl_size dimension, T const * X, T const * Y)
 {
@@ -110,7 +110,7 @@ VL_XCAT(_vl_distance_l2_avx_, SFX)
   return acc ;
 }
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_distance_mahalanobis_sq_avx_, SFX)
 (vl_size dimension, T const * X, T const * MU, T const * S)
 {
@@ -168,7 +168,7 @@ VL_XCAT(_vl_distance_mahalanobis_sq_avx_, SFX)
   return acc ;
 }
 
-VL_EXPORT void
+void
 VL_XCAT(_vl_weighted_mean_avx_, SFX)
 (vl_size dimension, T * MU, T const * X, T const  W)
 {
@@ -213,7 +213,7 @@ VL_XCAT(_vl_weighted_mean_avx_, SFX)
   }
 }
 
-VL_EXPORT void
+void
 VL_XCAT(_vl_weighted_sigma_avx_, SFX)
 (vl_size dimension, T * S, T const * X, T const * Y, T const W)
 {

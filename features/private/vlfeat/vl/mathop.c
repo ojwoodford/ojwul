@@ -293,7 +293,7 @@ optimal because $2^k > r$. This yields the algorithm:
 
 /* ---------------------------------------------------------------- */
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_distance_l2_, SFX)
 (vl_size dimension, T const * X, T const * Y)
 {
@@ -306,7 +306,7 @@ VL_XCAT(_vl_distance_l2_, SFX)
   return acc ;
 }
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_distance_l1_, SFX)
 (vl_size dimension, T const * X, T const * Y)
 {
@@ -319,7 +319,7 @@ VL_XCAT(_vl_distance_l1_, SFX)
   return acc ;
 }
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_distance_chi2_, SFX)
 (vl_size dimension, T const * X, T const * Y)
 {
@@ -339,7 +339,7 @@ VL_XCAT(_vl_distance_chi2_, SFX)
   return acc ;
 }
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_distance_hellinger_, SFX)
 (vl_size dimension, T const * X, T const * Y)
 {
@@ -357,7 +357,7 @@ VL_XCAT(_vl_distance_hellinger_, SFX)
   return acc ;
 }
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_distance_js_, SFX)
 (vl_size dimension, T const * X, T const * Y)
 {
@@ -372,7 +372,7 @@ VL_XCAT(_vl_distance_js_, SFX)
   return acc ;
 }
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_kernel_l2_, SFX)
 (vl_size dimension, T const * X, T const * Y)
 {
@@ -386,7 +386,7 @@ VL_XCAT(_vl_kernel_l2_, SFX)
   return acc ;
 }
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_kernel_l1_, SFX)
 (vl_size dimension, T const * X, T const * Y)
 {
@@ -402,7 +402,7 @@ VL_XCAT(_vl_kernel_l1_, SFX)
   return acc / ((T)2) ;
 }
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_kernel_chi2_, SFX)
 (vl_size dimension, T const * X, T const * Y)
 {
@@ -421,7 +421,7 @@ VL_XCAT(_vl_kernel_chi2_, SFX)
   return acc ;
 }
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_kernel_hellinger_, SFX)
 (vl_size dimension, T const * X, T const * Y)
 {
@@ -439,7 +439,7 @@ VL_XCAT(_vl_kernel_hellinger_, SFX)
   return acc ;
 }
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_kernel_js_, SFX)
 (vl_size dimension, T const * X, T const * Y)
 {
@@ -454,7 +454,7 @@ VL_XCAT(_vl_kernel_js_, SFX)
   return (T)0.5 * acc ;
 }
 
-VL_EXPORT T
+T
 VL_XCAT(_vl_distance_mahalanobis_sq_, SFX)
 (vl_size dimension, T const * X, T const * MU, T const * S)
 {
@@ -469,7 +469,7 @@ VL_XCAT(_vl_distance_mahalanobis_sq_, SFX)
 
 /* ---------------------------------------------------------------- */
 
-VL_EXPORT COMPARISONFUNCTION_TYPE
+COMPARISONFUNCTION_TYPE
 VL_XCAT(vl_get_vector_comparison_function_, SFX)(VlVectorComparisonType type)
 {
   COMPARISONFUNCTION_TYPE function = 0 ;
@@ -517,7 +517,7 @@ VL_XCAT(vl_get_vector_comparison_function_, SFX)(VlVectorComparisonType type)
 
 /* ---------------------------------------------------------------- */
 
-VL_EXPORT COMPARISONFUNCTION3_TYPE
+COMPARISONFUNCTION3_TYPE
 VL_XCAT(vl_get_vector_3_comparison_function_, SFX)(VlVectorComparisonType type)
 {
   COMPARISONFUNCTION3_TYPE function = 0 ;
@@ -551,7 +551,7 @@ VL_XCAT(vl_get_vector_3_comparison_function_, SFX)(VlVectorComparisonType type)
 
 /* ---------------------------------------------------------------- */
 
-VL_EXPORT void
+void
 VL_XCAT(vl_eval_vector_comparison_on_all_pairs_, SFX)
 (T * result, vl_size dimension,
  T const * X, vl_size numDataX,
@@ -835,7 +835,7 @@ vl_lapack_dlasv2 (double *smin,
  ** matrix.
  **/
 
-VL_EXPORT int
+int
 vl_solve_linear_system_3 (double * x, double const * A, double const *b)
 {
   int err ;
@@ -868,7 +868,7 @@ vl_solve_linear_system_3 (double * x, double const * A, double const *b)
  ** matrix.
  **/
 
-VL_EXPORT int
+int
 vl_solve_linear_system_2 (double * x, double const * A, double const *b)
 {
   int err ;
@@ -902,7 +902,7 @@ vl_solve_linear_system_2 (double * x, double const * A, double const *b)
  ** a similar manner.
  **/
 
-VL_EXPORT vl_bool
+vl_bool
 vl_gaussian_elimination (double * A, vl_size numRows, vl_size numColumns)
 {
   vl_index i, j, ii, jj ;
