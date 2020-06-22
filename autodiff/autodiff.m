@@ -469,16 +469,9 @@ classdef autodiff
         end
         
         % Other functions
-        function c = ojw_interp2(I, x, y, interp_mode, oobv)
-            if nargin < 4
-                interp_mode = 'l';
-            end
-            if nargin < 5
-                oobv = NaN;
-            end
-            assert(lower(interp_mode(1)) ~= 'c', 'Cubic interpolation not supported');
+        function c = ojw_interp2(I, x, y, varargin)
             if isautodiff(x) && isautodiff(y) && ~isautodiff(I)
-                [c, d] = ojw_interp2(I, x.value, y.value, interp_mode, oobv);
+                [c, d] = ojw_interp2(I, x.value, y.value, varargin{:});
                 c = autodiff(c, x.varind, x.deriv .* d(1,:,:,:) + y.deriv .* d(2,:,:,:));
             elseif isautodiff(I) && ~isautodiff(x) && ~isautodiff(y)
                 [h, w, n] = size(I.value);
@@ -486,7 +479,7 @@ classdef autodiff
                 [sz(1), sz(2)] = size(x);
                 c = [shiftdim(I.value, -1); I.grad];
                 c = reshape(reshape(c, size(c, 1), numel(I.value))', h, w, []);
-                c = ojw_interp2(c, x, y, interp_mode, oobv);
+                c = ojw_interp2(c, x, y, varargin{:});
                 c = reshape(c, size(c, 1), size(c, 2), n, numel(I.varind)+1);
                 c = autodiff(reshape(c(:,:,:,1), sz), I.varind, reshape(permute(c(:,:,:,2:end), [4 1 2 3]), [numel(I.varind) sz]));
             else
@@ -496,17 +489,13 @@ classdef autodiff
         
         % Alternative method avoids a subsref of autodiff variables (for
         % speed)
-        function c = ojw_interp2_alt(I, x, interp_mode, oobv)
-            if nargin < 3
-                interp_mode = 'l';
-            end
-            if nargin < 4
-                oobv = NaN;
-            end
-            assert(lower(interp_mode(1)) ~= 'c', 'Cubic interpolation not supported');
+        function [c, d] = ojw_interp2_alt(I, x, varargin)
             if isautodiff(x)  && ~isautodiff(I)
-                [c, d] = ojw_interp2(I, x.value(:,:,1), x.value(:,:,2), interp_mode, oobv);
+                [c, d] = ojw_interp2(I, x.value(:,:,1), x.value(:,:,2), varargin{:});
                 c = autodiff(c, x.varind, x.deriv(:,:,:,1) .* d(1,:,:,:) + x.deriv(:,:,:,2) .* d(2,:,:,:));
+                if nargout > 1
+                    d = autodiff(d(1:2,:,:,:), x.varind, [shiftdim(x.deriv(:,:,:,2) .* d(3,:,:,:), -1); shiftdim(x.deriv(:,:,:,1) .* d(3,:,:,:), -1)]);
+                end
             else
                 error('Unexpected variables');
             end
