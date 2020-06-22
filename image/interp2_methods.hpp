@@ -213,12 +213,9 @@ public:
                 V out = v00 + d0 * u;
                 out += ((v01 - out) + d1 * u) * v;
                 *B = saturate_cast<U, V>(out);
-                out = d0 + (d1 - d0) * v;
-                G[1] = saturate_cast<U, V>(out);
-                d0 = v01 - v00;
-                d1 = v11 - v10;
-                out = d0 + (d1 - d0) * u;
-                G[0] = saturate_cast<U, V>(out);
+                d1 -= d0;
+                G[1] = saturate_cast<U, V>(d0 + d1 * v);
+                G[0] = saturate_cast<U, V>(v01 - v00 + d1 * u);
             }
 		} else {
 			// Out of bounds
@@ -352,10 +349,9 @@ public:
                 V out = v00 + d0 * u;
                 out += ((v01 - out) + d1 * u) * v;
                 *B = saturate_cast<U, V>(out);
-                G[1] = saturate_cast<U, V>(d0 + (d1 - d0) * v);
-                d0 = v01 - v00;
-                d1 = v11 - v10;
-                G[0] = saturate_cast<U, V>(d0 + (d1 - d0) * u);
+                d1 -= d0;
+                G[1] = saturate_cast<U, V>(d0 + d1 * v);
+                G[0] = saturate_cast<U, V>(v01 - v00 + d1 * u);
             }
 		} else {
 			// Out of bounds
@@ -395,7 +391,7 @@ struct lanczos { // N tap - described here: https://en.wikipedia.org/wiki/Lanczo
         return std::make_pair<V, V>(spx * spxa * a / (px * px), (spx * cpxa + a * cpx * spxa - 2 * a * spx * spxa / px) / (px * x)); 
     }
 };
-struct magic { // Magic kernel (3 tap) - described here: http://johncostella.webs.com/magic/
+struct magic { // Magic kernel (3 tap) - described here: http://www.johncostella.com/magic/
     template <typename V> V               operator()(V x) { return (std::abs(x) <= static_cast<V>(0.5)) ?                     (static_cast<V>(0.75) - (x * x))                           :                     (static_cast<V>(0.5) * (x * x - static_cast<V>(3) * std::abs(x) + static_cast<V>(2.25))); }
     template <typename V> std::pair<V, V> operator[](V x) { return (std::abs(x) <= static_cast<V>(0.5)) ? std::make_pair<V, V>(static_cast<V>(0.75) - (x * x), static_cast<V>(-2.0) * x) : std::make_pair<V, V>(static_cast<V>(0.5) * (x * x - static_cast<V>(3) * std::abs(x) + static_cast<V>(2.25)), x + (x < static_cast<V>(0) ? static_cast<V>(1.5) : -static_cast<V>(1.5))); } // Derivative
 };
