@@ -489,13 +489,10 @@ classdef autodiff
         
         % Alternative method avoids a subsref of autodiff variables (for
         % speed)
-        function [c, d] = ojw_interp2_alt(I, x, varargin)
+        function c = ojw_interp2_alt(I, x, varargin)
             if isautodiff(x)  && ~isautodiff(I)
                 [c, d] = ojw_interp2(I, x.value(:,:,1), x.value(:,:,2), varargin{:});
                 c = autodiff(c, x.varind, x.deriv(:,:,:,1) .* d(1,:,:,:) + x.deriv(:,:,:,2) .* d(2,:,:,:));
-                if nargout > 1
-                    d = autodiff(d(1:2,:,:,:), x.varind, [shiftdim(x.deriv(:,:,:,2) .* d(3,:,:,:), -1); shiftdim(x.deriv(:,:,:,1) .* d(3,:,:,:), -1)]);
-                end
             else
                 error('Unexpected variables');
             end
