@@ -385,7 +385,7 @@ struct lanczos { // N tap - described here: https://en.wikipedia.org/wiki/Lanczo
         V px = x * static_cast<V>(__PI__);
         V spx = sin(px);
         V cpx = cos(px);
-        V pxa = x / a;
+        V pxa = px / a;
         V spxa = sin(pxa);
         V cpxa = cos(pxa);
         return std::make_pair<V, V>(spx * spxa * a / (px * px), (spx * cpxa + a * cpx * spxa - 2 * a * spx * spxa / px) / (px * x)); 
