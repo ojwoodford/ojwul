@@ -378,17 +378,28 @@ private:
 template <int N>
 struct lanczos { // N tap - described here: https://en.wikipedia.org/wiki/Lanczos_resampling
     static constexpr int a = N / 2;
-    template <typename V> V               operator()(V x) { if (x == static_cast<V>(0)) return static_cast<V>(1.0); x *= static_cast<V>(__PI__); return sin(x) * sin(x / a) * a / (x*x); }
+    template <typename V> V operator()(V x) { 
+        if (std::abs(x) > static_cast<V>(1.0e-3)) {
+            x *= static_cast<V>(__PI__);
+            return sin(x) * sin(x / a) * a / (x*x);
+        } else {
+            x *= static_cast<V>(__PI__);
+            return static_cast<V>(1.0) - (x * x / static_cast<V>(6 * a * a)) * static_cast<V>(a * a + 1);
+        }
+    }
     template <typename V> std::pair<V, V> operator[](V x) { // Derivative
-        if (x == static_cast<V>(0))
-            return std::make_pair<V, V>(static_cast<V>(1.0), static_cast<V>(0.0));
-        V px = x * static_cast<V>(__PI__);
-        V spx = sin(px);
-        V cpx = cos(px);
-        V pxa = px / a;
-        V spxa = sin(pxa);
-        V cpxa = cos(pxa);
-        return std::make_pair<V, V>(spx * spxa * a / (px * px), (spx * cpxa + a * cpx * spxa - 2 * a * spx * spxa / px) / (px * x)); 
+        if (std::abs(x) > static_cast<V>(1.0e-3)) {
+            V px = x * static_cast<V>(__PI__);
+            V spx = sin(px);
+            V cpx = cos(px);
+            V pxa = px / a;
+            V spxa = sin(pxa);
+            V cpxa = cos(pxa);
+            return std::make_pair<V, V>(spx * spxa * a / (px * px), (spx * cpxa + a * cpx * spxa - 2 * a * spx * spxa / px) / (px * x)); 
+        } else {
+            x *= static_cast<V>(__PI__);
+            return std::make_pair<V, V>(static_cast<V>(1.0) - (x * x / static_cast<V>(6 * a * a)) * static_cast<V>(a * a + 1), static_cast<V>(__PI__) * (x * x * x * static_cast<V>(3 * a * a * a * a + 10 * a * a + 3) / static_cast<V>(90 * a * a * a * a) - (static_cast<V>(a * a + 1) * x) / static_cast<V>(3 * a * a)));
+        }
     }
 };
 struct magic { // Magic kernel (3 tap) - described here: http://www.johncostella.com/magic/
