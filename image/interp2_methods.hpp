@@ -488,8 +488,8 @@ public:
 					y_deriv += x_val * yf[y].second;
                 }
 				*B = saturate_cast<U, V>(y_val);
-                G[0] = saturate_cast<U, V>(x_deriv);
-                G[1] = saturate_cast<U, V>(y_deriv);
+                G[0] = saturate_cast<U, V>(y_deriv);
+                G[1] = saturate_cast<U, V>(x_deriv);
 			}
 		} else {
 			// Out of bounds
