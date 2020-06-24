@@ -234,6 +234,27 @@ classdef autodiff
             c = autodiff(c, a.varind, d);
         end
         
+        function c = pinv(a)
+            c = pinv(a.value);
+            ct = c';
+            d = permute(a.deriv, [1 3 2]);
+            sz = [size(a.deriv) 1];
+            if sz(2) >= sz(3)
+                d_ = reshape(sum(d .* shiftdim(ct, -2), 3), sz(1), sz(3), sz(3));
+                d_ = d_ - reshape(sum(shiftdim(c * a.value, -1) .* reshape(d_, sz(1), 1, sz(3), sz(3)), 3), sz(1), sz(3), sz(3));
+                d_ = d_ - reshape(sum(shiftdim(c, -1) .* reshape(a.deriv, sz(1), 1, sz(2), sz(3)), 3), sz(1), sz(3), sz(3));
+                d = reshape(d - reshape(sum(sum(d .* shiftdim(a.value, -2), 3) .* shiftdim(c, -3), 4), sz(1), sz(3), sz(2)), sz(1), 1, sz(3), sz(2));
+                d = reshape(sum(d_ .* shiftdim(c, -2), 3), sz(1), sz(3), sz(2)) + reshape(sum(shiftdim(c * ct, -1) .* d, 3), sz(1), sz(3), sz(2));
+            else
+                d_ = reshape(sum(shiftdim(ct, -1) .* reshape(d, sz(1), 1, sz(3), sz(2)), 3), sz(1), sz(2), sz(2));
+                d_ = d_ - reshape(sum(d_ .* shiftdim(a.value * c, -2), 3), sz(1), sz(2), sz(2));
+                d_ = d_ - reshape(sum(a.deriv .* shiftdim(c, -2), 3), sz(1), sz(2), sz(2));
+                d = d - reshape(sum(shiftdim(c, -1) .* reshape(sum(shiftdim(a.value, -1) .* reshape(d, sz(1), 1, sz(3), sz(2)), 3), sz(1), 1, sz(2), sz(2)), 3), sz(1), sz(3), sz(2));
+                d = reshape(sum(shiftdim(c, -1) .* reshape(d_, sz(1), 1, sz(2), sz(2)), 3), sz(1), sz(3), sz(2)) + reshape(sum(d .* shiftdim(ct * c, -2), 3), sz(1), sz(3), sz(2));
+            end
+            c = autodiff(c, a.varind, d);
+        end
+        
         function c = expm(a)
             c = expm(a.value);
             sz = [size(a.deriv) 1];
