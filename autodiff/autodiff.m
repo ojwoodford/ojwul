@@ -675,7 +675,7 @@ if n == numel(vb) && ((n == va(end) && n == vb(end)) || isequal(va, vb))
     v = va;
     return;
 end
-v = combine_varind_(va, vb);
+v = combine_varind_({va, vb});
 c = bsxfun(func, expand_array(ga, va, v, fill), expand_array(gb, vb, v, fill));
 end
 
@@ -696,30 +696,16 @@ A = reshape(A(:,I), [szA(1) szI]);
 end
 
 function v = combine_varind(varargin)
-varargin = cellfun(@var_indices, varargin, 'UniformOutput', false);
-N = cellfun(@numel, varargin);
-[n, m] = max(N);
-v = varargin{m};
-varargin = varargin(N ~= 0);
-if all(N == n | N == 0) && all(cellfun(@(c) c(end) == n, varargin))
-    return;
-end
-if all(cellfun(@(c) isequal(v, c), varargin))
-    return;
-end
-v = unique([varargin{:}]);
+v = combine_varind_(cellfun(@var_indices, varargin, 'UniformOutput', false));
 end
 
-function v = combine_varind_(varargin)
-N = cellfun(@numel, varargin);
-[n, m] = max(N);
-v = varargin{m};
-varargin = varargin(N ~= 0);
-if all(N == n | N == 0) && all(cellfun(@(c) c(end) == n, varargin))
+function v = combine_varind_(varinds)
+varinds = varinds(~cellfun(@isempty, varinds));
+[n, m] = max(cellfun(@(c) c(end), varinds));
+if numel(varinds{m}) == n
     return;
 end
-if all(cellfun(@(c) isequal(v, c), varargin))
-    return;
-end
-v = unique([varargin{:}]);
+v = false(1, n);
+v([varinds{:}]) = true;
+v = find(v);
 end
