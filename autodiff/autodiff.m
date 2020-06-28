@@ -703,6 +703,7 @@ function v = combine_varind_(varinds)
 varinds = varinds(~cellfun(@isempty, varinds));
 [n, m] = max(cellfun(@(c) c(end), varinds));
 if numel(varinds{m}) == n
+    v = varinds{m};
     return;
 end
 v = false(1, n);
