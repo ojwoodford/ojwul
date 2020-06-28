@@ -195,7 +195,7 @@ classdef autodiff
             da = double(a);
             db = double(b);
             c = da * db;
-            v = unique([var_indices(a) var_indices(b)]);
+            v = combine_varind(a, b);
             sz = [numel(v) size(c)];
             if isautodiff(a)
                 g = reshape(reshape(grad(a, v), [], size(da, 2)) * db, sz);
@@ -291,7 +291,7 @@ classdef autodiff
         function c = select(a, b, M)
             da = double(a);
             db = double(b);
-            v = unique([var_indices(a) var_indices(b)]);
+            v = combine_varind(a, b);
             ga = grad(a, v);
             gb = grad(b, v);
             if isscalar(a)
@@ -363,7 +363,16 @@ classdef autodiff
         
         % Access functions
         function c = end(a, k, n)
-            c = size(a.value, k);
+            if k < n
+                c = size(a.value, k);
+            else
+                sz = size(a.value);
+                if numel(sz) < k
+                    c = 1;
+                else
+                    c = prod(sz(k:end));
+                end
+            end
         end
          
         function c = subsref(a, s)
@@ -376,7 +385,7 @@ classdef autodiff
             assert(strcmp(s.type, '()'));
             c = double(a);
             c(s.subs{:}) = double(b);
-            v = unique([var_indices(a) var_indices(b)]);
+            v = combine_varind(a, b);
             d = grad(a, v);
             s_ = [{':'} s.subs];
             d_ = grad(b, v);
@@ -390,8 +399,7 @@ classdef autodiff
         % Array concatenation
         function c = cat(dim, varargin)
             c = cellfun(@double, varargin, 'Uniform', false);
-            v = cellfun(@var_indices, varargin, 'Uniform', false);
-            v = unique(cat(2, v{:}));
+            v = combine_varind(varargin{:});
             d = cellfun(@(x) grad(x, v), varargin, 'Uniform', false);
             c = autodiff(cat(dim, c{:}), v, cat(dim+1, d{:}));
         end
@@ -667,7 +675,7 @@ if n == numel(vb) && ((n == va(end) && n == vb(end)) || isequal(va, vb))
     v = va;
     return;
 end
-v = unique([va vb]);
+v = combine_varind_(va, vb);
 c = bsxfun(func, expand_array(ga, va, v, fill), expand_array(gb, vb, v, fill));
 end
 
@@ -689,6 +697,20 @@ end
 
 function v = combine_varind(varargin)
 varargin = cellfun(@var_indices, varargin, 'UniformOutput', false);
+N = cellfun(@numel, varargin);
+[n, m] = max(N);
+v = varargin{m};
+varargin = varargin(N ~= 0);
+if all(N == n | N == 0) && all(cellfun(@(c) c(end) == n, varargin))
+    return;
+end
+if all(cellfun(@(c) isequal(v, c), varargin))
+    return;
+end
+v = unique([varargin{:}]);
+end
+
+function v = combine_varind_(varargin)
 N = cellfun(@numel, varargin);
 [n, m] = max(N);
 v = varargin{m};
