@@ -598,15 +598,21 @@ classdef autodiff
             c = autodiff(c, v, d);
         end
         
-        function c = proj(a)
+        function [c, z] = proj(a)
             sz = size(a.value);
             sz(1) = sz(1) - 1;
             c = a.value(1:end-1,:);
-            b = 1 ./ a.value(end,:);
-            c = c .* b;
-            b = shiftdim(b, -1);
-            d = a.deriv(:,1:end-1,:) .* b - (shiftdim(c, -1) .* b) .* a.deriv(:,end,:);
+            z = 1 ./ a.value(end,:);
+            c = c .* z;
+            z = shiftdim(z, -1);
+            dz = z .* a.deriv(:,end,:);
+            d = a.deriv(:,1:end-1,:) .* z - shiftdim(c, -1) .* dz;
             c = autodiff(reshape(c, sz), a.varind, reshape(d, [size(d, 1) sz]));
+            if nargout > 1
+                sz(1) = 1;
+                dz = dz .* z;
+                z = autodiff(reshape(z, sz), a.varind, reshape(dz, [size(dz, 1) sz]));
+            end
         end
         
         % Debug

@@ -1,6 +1,6 @@
 %PROJ Project points onto the image plane
 %
-%   Y = proj(X)
+%   [Y, z] = proj(X)
 %
 % Project points into a lower dimension by dividing thorugh by the last
 % dimension, e.g. pinhole camera projection.
@@ -10,9 +10,13 @@
 %
 %OUT:
 %   Y - (M-1)xN output array.
+%   z - 1xN array of normalizing values, z = 1./X(end,:).
 
-function X = proj(X)
+function [X, z] = proj(X)
 sz = size(X);
 sz(1) = sz(1) - 1;
-X = reshape(X(1:end-1,:) .* (1 ./ X(end,:)), sz);
+z = 1 ./ X(end,:);
+X = reshape(X(1:end-1,:) .* z, sz);
+sz(1) = 1;
+z = reshape(z, sz);
 end
