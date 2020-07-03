@@ -68,7 +68,7 @@ classdef autodiff
         % Elementwise operators
         function c = plus(a, b)
             c = double(a) + double(b);
-            [d, v] = combine_grads(grad(a), grad(b), var_indices(a), var_indices(b), size(c), 'add');
+            [d, v] = add_grads(grad(a), grad(b), var_indices(a), var_indices(b), size(c));
             c = autodiff(c, v, d);
         end
         
@@ -92,7 +92,7 @@ classdef autodiff
                 gb = b.deriv .* shiftdim(da, -1);
             end
             c = da .* db;
-            [d, v] = combine_grads(ga, gb, var_indices(a), var_indices(b), size(c), 'add');
+            [d, v] = add_grads(ga, gb, var_indices(a), var_indices(b), size(c));
             c = autodiff(c, v, d);
         end
         
@@ -108,7 +108,7 @@ classdef autodiff
                 gb = b.deriv .* -shiftdim(da, -1);
             end
             c = da ./ db;
-            [d, v] = combine_grads(ga, gb, var_indices(a), var_indices(b), size(c), 'add');
+            [d, v] = add_grads(ga, gb, var_indices(a), var_indices(b), size(c));
             c = autodiff(c, v, d .* shiftdim(1 ./ (db .* db), -1));
         end
         
@@ -128,7 +128,7 @@ classdef autodiff
             if isautodiff(b)
                 gb = b.deriv .* shiftdim(c .* log(da), -1);
             end
-            [d, v] = combine_grads(ga, gb, var_indices(a), var_indices(b), size(c), 'add');
+            [d, v] = add_grads(ga, gb, var_indices(a), var_indices(b), size(c));
             c = autodiff(c, v, d);
         end
         
@@ -643,20 +643,7 @@ g = repmat(fill, sz);
 g(l,:) = ga(:,:);
 end
 
-function [c, v] = combine_grads(ga, gb, va, vb, sz, M)
-if ischar(M)
-    switch M
-        case 'add'
-            func = @plus;
-            fill = 0;
-        case 'mult'
-            func = @times;
-            fill = 1;
-    end
-else
-    func = @plus;
-    fill = 0;
-end
+function [c, v] = add_grads(ga, gb, va, vb, sz)
 if isempty(va)
     sz2 = size(gb);
     sz = [sz2(1) sz];
@@ -676,13 +663,13 @@ if isempty(vb)
     return;
 end
 n = numel(va);
-if n == numel(vb) && ((n == va(end) && n == vb(end)) || isequal(va, vb))
-    c = bsxfun(func, ga, gb);
+if (n == vb(end) && n == numel(vb) && n == va(end)) || isequal(va, vb)
+    c = ga + gb;
     v = va;
     return;
 end
 v = combine_varind_({va, vb});
-c = bsxfun(func, expand_array(ga, va, v, fill), expand_array(gb, vb, v, fill));
+c = expand_array(ga, va, v, 0) + expand_array(gb, vb, v, 0);
 end
 
 function A = dimsel(A, I, dim)
