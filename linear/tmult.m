@@ -80,7 +80,7 @@ switch transpose
         szB(1) = szA(1);
 end
 % Compute the output
-A = sum(bsxfun(@times, A, B), dim);
+A = sum(A .* B, dim);
 % Reshape to expected size
 szA = [szA ones(1, numel(szB)-numel(szA))];
 szB = [szB ones(1, numel(szA)-numel(szB))];
