@@ -412,6 +412,10 @@ classdef autodiff
             c = cat(1, varargin{:});
         end
         
+        function c = repmat(a, varargin)
+            c = autodiff(repmat(a.value, varargin{:}), a.varind, repmat(a.deriv, cat(2, 1, varargin{:})));
+        end
+        
         % Transpose, permute, reshape, shiftdim etc.
         function c = ctranspose(a)
             c = permute(conj(a), [2 1]);
