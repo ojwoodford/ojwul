@@ -96,6 +96,25 @@ classdef autodiff
             c = autodiff(c, v, d);
         end
         
+        function c = dot(a, b, dim)
+            if nargin < 3
+                dim = first_nonsingleton_dim(a, b);
+            end
+            da = double(a);
+            db = double(b);
+            c = dot(da, db, dim);
+            ga = [];
+            gb = [];
+            if isautodiff(a)
+                ga = sum(a.deriv .* shiftdim(db, -1), dim+1);
+            end
+            if isautodiff(b)
+                gb = sum(b.deriv .* shiftdim(da, -1), dim+1);
+            end
+            [d, v] = add_grads(ga, gb, var_indices(a), var_indices(b), size(c));
+            c = autodiff(c, v, d);
+        end
+        
         function c = rdivide(a, b)
             da = double(a);
             db = double(b);
@@ -632,8 +651,15 @@ classdef autodiff
 end
 
 % Helpers
-function dim = first_nonsingleton_dim(a)
-dim = find(size(a) > 1, 1, 'first');
+function dim = first_nonsingleton_dim(a, b)
+sza = size(a);
+if nargin > 1
+    szb = size(b);
+    sza(end+1:numel(szb)) = 1;
+    szb(end+1:numel(sza)) = 1;
+    sza = min(sza, szb);
+end
+dim = find(sza > 1, 1, 'first');
 if isempty(dim)
     dim = 1;
 end
