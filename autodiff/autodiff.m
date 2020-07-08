@@ -83,16 +83,16 @@ classdef autodiff
         function c = times(a, b)
             da = double(a);
             db = double(b);
-            ga = [];
-            gb = [];
+            d = [];
+            v = [];
             if isautodiff(a)
-                ga = a.deriv .* shiftdim(db, -1);
+                d = a.deriv .* shiftdim(db, -1);
             end
             if isautodiff(b)
-                gb = b.deriv .* shiftdim(da, -1);
+                v = b.deriv .* shiftdim(da, -1);
             end
             c = da .* db;
-            [d, v] = add_grads(ga, gb, var_indices(a), var_indices(b), size(c));
+            [d, v] = add_grads(d, v, var_indices(a), var_indices(b), size(c));
             c = autodiff(c, v, d);
         end
         
@@ -102,32 +102,32 @@ classdef autodiff
             end
             da = double(a);
             db = double(b);
-            c = dot(da, db, dim);
-            ga = [];
-            gb = [];
+            d = [];
+            v = [];
             if isautodiff(a)
-                ga = sum(a.deriv .* shiftdim(db, -1), dim+1);
+                d = sum(a.deriv .* shiftdim(db, -1), dim+1);
             end
             if isautodiff(b)
-                gb = sum(b.deriv .* shiftdim(da, -1), dim+1);
+                v = sum(b.deriv .* shiftdim(da, -1), dim+1);
             end
-            [d, v] = add_grads(ga, gb, var_indices(a), var_indices(b), size(c));
+            c = dot(da, db, dim);
+            [d, v] = add_grads(d, v, var_indices(a), var_indices(b), size(c));
             c = autodiff(c, v, d);
         end
         
         function c = rdivide(a, b)
             da = double(a);
             db = double(b);
-            ga = [];
-            gb = [];
+            d = [];
+            v = [];
             if isautodiff(a)
-                ga = a.deriv .* shiftdim(db, -1);
+                d = a.deriv .* shiftdim(db, -1);
             end
             if isautodiff(b)
-                gb = b.deriv .* -shiftdim(da, -1);
+                v = b.deriv .* -shiftdim(da, -1);
             end
             c = da ./ db;
-            [d, v] = add_grads(ga, gb, var_indices(a), var_indices(b), size(c));
+            [d, v] = add_grads(d, v, var_indices(a), var_indices(b), size(c));
             c = autodiff(c, v, d .* shiftdim(1 ./ (db .* db), -1));
         end
         
@@ -138,16 +138,16 @@ classdef autodiff
         function c = power(a, b)
             da = double(a);
             db = double(b);
-            ga = [];
-            gb = [];
+            d = [];
+            v = [];
             c = da .^ db;
             if isautodiff(a)
-                ga = a.deriv .* shiftdim((da .^ (db-1)) .* db, -1);
+                d = a.deriv .* shiftdim((da .^ (db-1)) .* db, -1);
             end
             if isautodiff(b)
-                gb = b.deriv .* shiftdim(c .* log(da), -1);
+                v = b.deriv .* shiftdim(c .* log(da), -1);
             end
-            [d, v] = add_grads(ga, gb, var_indices(a), var_indices(b), size(c));
+            [d, v] = add_grads(d, v, var_indices(a), var_indices(b), size(c));
             c = autodiff(c, v, d);
         end
         
