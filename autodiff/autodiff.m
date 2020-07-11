@@ -628,8 +628,8 @@ classdef autodiff
             z = 1 ./ a.value(end,:);
             c = c .* z;
             z = shiftdim(z, -1);
-            dz = z .* a.deriv(:,end,:);
-            d = a.deriv(:,1:end-1,:) .* z - shiftdim(c, -1) .* dz;
+            dz = -z .* a.deriv(:,end,:);
+            d = a.deriv(:,1:end-1,:) .* z + shiftdim(c, -1) .* dz;
             c = autodiff(reshape(c, sz), a.varind, reshape(d, [size(d, 1) sz]));
             if nargout > 1
                 sz(1) = 1;
