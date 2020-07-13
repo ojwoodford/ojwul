@@ -420,7 +420,7 @@ end
 function stopt = call_output_function(data, optim, where)
 stopt = false;
 if (~isempty(optim.OutputFcn))
-    output.iterations = data.iterations;
+    output.iteration = data.iterations+1;
     output.funcCount = data.funcCount;
     output.fval      = data.fInitial;
     output.stepsize  = data.alpha;
