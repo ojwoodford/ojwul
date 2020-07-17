@@ -26,8 +26,8 @@ if ~tf
     end
     return;
 end
-d = A - B;
-d2 = A + B;
+d = abs(A - B);
+d2 = abs(A + B);
 if issparse(d2)
     [i, j, d] = find(d);
     if isempty(d)
@@ -38,8 +38,8 @@ if issparse(d2)
         d2 = full(d2(i));
     end
 end
-D = abs(d ./ (d2 + 1));
-d = full(2 * max(D(:)));
+D = d ./ (d2 + 1);
+d = 2 * max(D(:));
 if nargin < 3
     if nargout == 0
         fprintf('Matrices differ by scale %g.\n', d);
