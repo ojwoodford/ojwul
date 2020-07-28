@@ -313,26 +313,15 @@ end
 % Note that the spread of points should depend on the width of the bars and
 % the total number of points that need to be spread.
 if outlierFlag % but only if you want to
-    I = (x<wisEdge(1))+(x>wisEdge(2));
-    I=logical(I);
-    xx=x(I);
-    yy=I*0+y;
-    yy=yy(I);
-    yy = jitter(xx,yy,toScale);
-
-    if ~isempty(yy)
+    I = (x<wisEdge(1))|(x>wisEdge(2));
+    if any(I)
+        xx=x(I);
+        yy= repmat(y, size(xx));
         yy = jitter(xx,yy,toScale);
-
-        maxPointHeight = 2.5;
-        yy = (yy-y)*4+y;
-        yy = (yy-y)*(barWidth/maxPointHeight)/max([yy-y; barWidth/maxPointHeight])+y;
-
-        if ~isempty(xx)
-            if horizontalFlag
-                hReg2(end+1) = plot(xx,yy,'.','color',wisColor);
-            else
-                hReg2(end+1) = plot(yy,xx,'.','color',wisColor);
-            end
+        if horizontalFlag
+            hReg2(end+1) = plot(xx,yy,'.','color',wisColor);
+        else
+            hReg2(end+1) = plot(yy,xx,'.','color',wisColor);
         end
     end
 end
@@ -384,16 +373,7 @@ if toScale
 else
     tempY=1;
 end
-
-for ii=unique(xx)'
-    I = xx==(ii);
-    fI = find(I)';
-    push = -(length(fI)-1)/2; % so it will be centered if there is only one.
-    for jj=fI
-        yy(jj)=yy(jj)+tempY/50*(push);
-        push = push+1;
-    end
-end
+yy = yy + randn(size(yy)) * (0.05 * tempY);
 
 %% This is the function for calculating the quantiles for the bplot.
 function yi = prctile(X,p)
