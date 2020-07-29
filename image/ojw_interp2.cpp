@@ -1,4 +1,4 @@
-// B = ojw_interp2(A, X, Y[, method[, oobv]])
+// B = ojw_interp2(A, X, Y[, method[, oobv[, max_num_threads]]])
 
 // Written by ojw 20/9/06
 
@@ -17,60 +17,62 @@
 extern "C" mxArray *mxCreateUninitNumericArray(mwSize ndim, const size_t *dims, mxClassID classid, mxComplexity ComplexFlag);
 #endif
 
-template<class Method, class U, class V> static inline void wrapper_func4(U *B, U *G, Method &im, const V *X, const V *Y, const int num_points, const int max_num_threads)
+template<class Method, class U, class V> static inline void wrapper_func4(U *B, U *G, Method &im, const V *X, const V *Y, const int num_points, const int num_threads)
 {
 	// For each of the interpolation points
-    int i;
-    if (G == NULL) {
-#pragma omp parallel for if (num_points > 1000) num_threads(std::min(max_num_threads, omp_get_num_procs())) schedule(dynamic, 512) default(shared) private(i)
-        for (i = 0; i < num_points; ++i)
-            im.lookup(&B[i], Y[i]-static_cast<V>(1.0), X[i]-static_cast<V>(1.0), num_points); // Do the interpolation
-    } else {
-#pragma omp parallel for if (num_points > 1000) num_threads(std::min(max_num_threads, omp_get_num_procs())) schedule(dynamic, 512) default(shared) private(i)
-        for (i = 0; i < num_points; ++i)
-            im.lookup_grad(&B[i], &G[i*2], Y[i]-static_cast<V>(1.0), X[i]-static_cast<V>(1.0), num_points, num_points*2); // Do the interpolation
-    } 
-	return;
+#pragma omp parallel if (num_threads > 1) num_threads(num_threads) default(shared)
+    {
+        if (G == NULL) {
+#pragma omp for schedule(dynamic, 128)
+            for (int i = 0; i < num_points; ++i)
+                im.lookup(&B[i], Y[i]-static_cast<V>(1.0), X[i]-static_cast<V>(1.0), num_points); // Do the interpolation
+        } else {
+#pragma omp for schedule(dynamic, 128)
+            for (int i = 0; i < num_points; ++i)
+                im.lookup_grad(&B[i], &G[i*2], Y[i]-static_cast<V>(1.0), X[i]-static_cast<V>(1.0), num_points, num_points*2); // Do the interpolation
+        }
+    }
+    return;
 }
 
-template<class T, class U, class V> static inline void wrapper_func3(U *B, U *G, const T *A, const V *X, const V *Y, const int num_points, const int max_num_threads, const int w, const int h, const int col, const U oobv, const char meth)
+template<class T, class U, class V> static inline void wrapper_func3(U *B, U *G, const T *A, const V *X, const V *Y, const int num_points, const int num_threads, const int w, const int h, const int col, const U oobv, const char meth)
 {
     // Call the fourth wrapper function according to the interpolation type
     switch (meth) {
         case 'l':
         {
             IM_LIN<T,U,V> im(A, oobv, h, w, col);
-			wrapper_func4(B, G, im, X, Y, num_points, max_num_threads);
+			wrapper_func4(B, G, im, X, Y, num_points, num_threads);
             break;
         }
         case 's':
         {
             IM_SHIFT<T,U,V> im(A, oobv, h, w, col);
-			wrapper_func4(B, G, im, X, Y, num_points, max_num_threads);
+			wrapper_func4(B, G, im, X, Y, num_points, num_threads);
             break;
         }
         case 'n':
         {
             IM_NEAR<T,U,V> im(A, oobv, h, w, col);
-			wrapper_func4(B, G, im, X, Y, num_points, max_num_threads);
+			wrapper_func4(B, G, im, X, Y, num_points, num_threads);
             break;
         }
         case 'm':
         {
             IM_NTAP<T,U,V,3,magic> im(A, oobv, h, w, col);
-			wrapper_func4(B, G, im, X, Y, num_points, max_num_threads);
+			wrapper_func4(B, G, im, X, Y, num_points, num_threads);
             break;
         }
         case '4':
         {
             IM_NTAP<T,U,V,4,lanczos<4>> im(A, oobv, h, w, col);
-			wrapper_func4(B, G, im, X, Y, num_points, max_num_threads);
+			wrapper_func4(B, G, im, X, Y, num_points, num_threads);
             break;
         }
         case '6':
         {
             IM_NTAP<T,U,V,6,lanczos<6>> im(A, oobv, h, w, col);
-			wrapper_func4(B, G, im, X, Y, num_points, max_num_threads);
+			wrapper_func4(B, G, im, X, Y, num_points, num_threads);
             break;
         }
         case 'c':
@@ -78,7 +80,7 @@ template<class T, class U, class V> static inline void wrapper_func3(U *B, U *G,
             if (G != NULL)
                 mexErrMsgTxt("Gradient computation not supported for cubic interpolation method");
             IM_CUB<T,U,V> im(A, oobv, h, w, col);
-			wrapper_func4(B, G, im, X, Y, num_points, max_num_threads);
+			wrapper_func4(B, G, im, X, Y, num_points, num_threads);
             break;
         }
         default:
@@ -87,30 +89,30 @@ template<class T, class U, class V> static inline void wrapper_func3(U *B, U *G,
     }
 }
 
-template<class T, class V> static inline void wrapper_func2(void *B, void *G, const T *A, const V *X, const V *Y, const int num_points, const int max_num_threads, const int w, const int h, const int col, const double oobv, const char meth, const mxClassID out_class)
+template<class T, class V> static inline void wrapper_func2(void *B, void *G, const T *A, const V *X, const V *Y, const int num_points, const int num_threads, const int w, const int h, const int col, const double oobv, const char meth, const mxClassID out_class)
 {
 	// Call the third wrapper function according to the output type
 	switch (out_class) {
 		case mxDOUBLE_CLASS:
-            wrapper_func3((double *)B, (double *)G, A, X, Y, num_points, max_num_threads, w, h, col, (const double)oobv, meth);
+            wrapper_func3((double *)B, (double *)G, A, X, Y, num_points, num_threads, w, h, col, (const double)oobv, meth);
 			break;
 		case mxSINGLE_CLASS:
-            wrapper_func3((float *)B, (float *)G, A, X, Y, num_points, max_num_threads, w, h, col, (const float)oobv, meth);
+            wrapper_func3((float *)B, (float *)G, A, X, Y, num_points, num_threads, w, h, col, (const float)oobv, meth);
 			break;
 		case mxUINT8_CLASS:
-            wrapper_func3((uint8_t *)B, (uint8_t *)G, A, X, Y, num_points, max_num_threads, w, h, col, (const uint8_t)oobv, meth);
+            wrapper_func3((uint8_t *)B, (uint8_t *)G, A, X, Y, num_points, num_threads, w, h, col, (const uint8_t)oobv, meth);
 			break;
 		case mxINT8_CLASS:
-            wrapper_func3((int8_t *)B, (int8_t *)G, A, X, Y, num_points, max_num_threads, w, h, col, (const int8_t)oobv, meth);
+            wrapper_func3((int8_t *)B, (int8_t *)G, A, X, Y, num_points, num_threads, w, h, col, (const int8_t)oobv, meth);
 			break;
 		case mxINT16_CLASS:
-            wrapper_func3((int16_t *)B, (int16_t *)G, A, X, Y, num_points, max_num_threads, w, h, col, (const int16_t)oobv, meth);
+            wrapper_func3((int16_t *)B, (int16_t *)G, A, X, Y, num_points, num_threads, w, h, col, (const int16_t)oobv, meth);
 			break;
 		case mxUINT16_CLASS:
-            wrapper_func3((uint16_t *)B, (uint16_t *)G, A, X, Y, num_points, max_num_threads, w, h, col, (const uint16_t)oobv, meth);
+            wrapper_func3((uint16_t *)B, (uint16_t *)G, A, X, Y, num_points, num_threads, w, h, col, (const uint16_t)oobv, meth);
 			break;
 		case mxLOGICAL_CLASS:
-            wrapper_func3((mxLogical *)B, (mxLogical *)G, A, X, Y, num_points, max_num_threads, w, h, col, (const mxLogical)oobv, meth);
+            wrapper_func3((mxLogical *)B, (mxLogical *)G, A, X, Y, num_points, num_threads, w, h, col, (const mxLogical)oobv, meth);
 			break;
 		default:
 			mexErrMsgTxt("Unsupported output type");
@@ -119,7 +121,7 @@ template<class T, class V> static inline void wrapper_func2(void *B, void *G, co
 	return;
 }
 
-template<class T> static inline void wrapper_func(void *B, void *G, const T *A, const mxArray *prhs[], const int num_points, const int max_num_threads, const int w, const int h, const int col, const double oobv, const char meth, const mxClassID out_class, const mxClassID in_class)
+template<class T> static inline void wrapper_func(void *B, void *G, const T *A, const mxArray *prhs[], const int num_points, const int num_threads, const int w, const int h, const int col, const double oobv, const char meth, const mxClassID out_class, const mxClassID in_class)
 {
     // Get pointers to the coordinate arrays
     const void *X = mxGetData(prhs[1]);
@@ -128,10 +130,10 @@ template<class T> static inline void wrapper_func(void *B, void *G, const T *A, 
 	// Call the second wrapper function according to the coordinate type
 	switch (in_class) {
 		case mxDOUBLE_CLASS:
-			wrapper_func2(B, G, A, (const double *)X, (const double *)Y, num_points, max_num_threads, w, h, col, oobv, meth, out_class);
+			wrapper_func2(B, G, A, (const double *)X, (const double *)Y, num_points, num_threads, w, h, col, oobv, meth, out_class);
 			break;
 		case mxSINGLE_CLASS:
-			wrapper_func2(B, G, A, (const float *)X, (const float *)Y, num_points, max_num_threads, w, h, col, oobv, meth, out_class);
+			wrapper_func2(B, G, A, (const float *)X, (const float *)Y, num_points, num_threads, w, h, col, oobv, meth, out_class);
 			break;
 		default:
 			mexErrMsgTxt("X and Y must be floating point arrays");
@@ -212,12 +214,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     
     // Get the maximum number of threads
-    int max_num_threads = 1024 * 1024;
+    int num_threads = 1;
+#ifdef _OPENMP
+    num_threads += num_points >> 10;
+    num_threads = std::min(num_threads, omp_get_num_procs());
     if (nrhs > 5) {
 		if (mxGetNumberOfElements(prhs[4]) != 1)
 			mexErrMsgTxt("max_num_threads must be a scalar.");
-		max_num_threads = static_cast<int>(mxGetScalar(prhs[5]));
+		num_threads = std::min(static_cast<int>(mxGetScalar(prhs[5])), num_threads);
     }
+#endif
     
     // Get pointer to the input image
     const void *A = mxGetData(prhs[0]);
@@ -227,25 +233,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     const int height = static_cast<int>(dims[0]);
 	switch (mxGetClassID(prhs[0])) {
 		case mxDOUBLE_CLASS:
-			wrapper_func(B, G, (const double *)A, prhs, num_points, max_num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const double *)A, prhs, num_points, num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		case mxSINGLE_CLASS:
-			wrapper_func(B, G, (const float *)A, prhs, num_points, max_num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const float *)A, prhs, num_points, num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		case mxINT8_CLASS:
-			wrapper_func(B, G, (const int8_t *)A, prhs, num_points, max_num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const int8_t *)A, prhs, num_points, num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		case mxUINT8_CLASS:
-			wrapper_func(B, G, (const uint8_t *)A, prhs, num_points, max_num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const uint8_t *)A, prhs, num_points, num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		case mxINT16_CLASS:
-			wrapper_func(B, G, (const int16_t *)A, prhs, num_points, max_num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const int16_t *)A, prhs, num_points, num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		case mxUINT16_CLASS:
-			wrapper_func(B, G, (const uint16_t *)A, prhs, num_points, max_num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const uint16_t *)A, prhs, num_points, num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		case mxLOGICAL_CLASS:
-			wrapper_func(B, G, (const mxLogical *)A, prhs, num_points, max_num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
+			wrapper_func(B, G, (const mxLogical *)A, prhs, num_points, num_threads, width, height, nchannels, oobv, buffer[k], out_class, in_class);
 			break;
 		default:
 			mexErrMsgTxt("A is of an unsupported type");
