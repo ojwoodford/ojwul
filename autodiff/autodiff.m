@@ -621,6 +621,11 @@ classdef autodiff
             c = autodiff(c, v, d);
         end
         
+        function a = homg(a)
+            a.value(end+1,:) = 1;
+            a.deriv(:,end+1,:) = 0;
+        end
+        
         function [c, z] = proj(a)
             sz = size(a.value);
             sz(1) = sz(1) - 1;

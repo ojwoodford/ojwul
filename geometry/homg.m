@@ -13,3 +13,4 @@
 
 function X = homg(X)
 X(end+1,:) = 1;
+end
