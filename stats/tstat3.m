@@ -60,36 +60,22 @@ function pt = tstat3( v, tp, stat )
 % % % % T-DISTRIBUTIONS — 
 % Variables: 
 % t: t-statistic
-% v: degrees of freedom
+% v: degrees of freedom     
 
-tdist2T = @(t, v) 1 - betainc(v ./ (v + t .* t), v * 0.5, 0.5);                              % 2-tailed t-distribution
-tdist1T = @(t, v) 0.5 * (1 + tdist2T(t,v));                                          % 1-tailed t-distribution
+assert(v > 0, '                    —> The degrees-of-freedom (''v'') must be > 0.');
 
-% This calculates the inverse t-distribution (parameters given the
-%   probability ‘alpha’ and degrees of freedom ‘v’: 
-t_inv = @(alpha,v) fzero(@(tval) (max(alpha, (1 - alpha)) - tdist1T(tval, v)), 5);  % T-Statistic Given Probability ‘alpha’ & Degrees-Of-Freedom ‘v’
-
-statcell = {'one' 'two' 'inv'};                                                 % Available Options
-nc = cellfun(@(x)~isempty(x), regexp(statcell, stat));                          % Logical Match Array
-n = find(nc);                                                                   % Convert ‘nc’ To Integer
-
-if isempty(n)                                                                   % Error Check ‘if’ Block
-    error('                    —> The third argument must be either ''one'', ''two'', or ''inv''.')
-elseif (n == 3) && ((tp < 0) || (tp > 1))
-    error('                    —> The probability for ''inv'' must be between 0 and 1.')
-elseif (isempty(v) || (v <= 0))
-    error('                    —> The degrees-of-freedom (''v'') must be > 0.')
-end
-
-switch n                                                                        % Calculate Requested Statistics
-    case 1
-        pt = tdist1T(tp, v);
-    case 2
-        pt = tdist2T(tp, v);
-    case 3
-        pt = t_inv(tp, v);
+switch stat                                                                        % Calculate Requested Statistics
+    case 'one'
+        pt = 0.5 * (1 + betainc(v ./ (v + t .* t), v * 0.5, 0.5, 'upper')); % 1-tailed t-distribution
+    case 'two'
+        pt = betainc(v ./ (v + tp .* tp), v * 0.5, 0.5, 'upper'); % 2-tailed t-distribution
+    case 'inv'
+        assert(tp >= 0 && tp <= 1, '                    —> The probability for ''inv'' must be between 0 and 1.');
+        % This calculates the inverse t-distribution (parameters given the
+        %   probability ‘alpha’ and degrees of freedom ‘v’:
+        pt = fzero(@(pt) 0.5 * betainc(v ./ (v + pt .* pt), v * 0.5, 0.5) - min(tp, (1 - tp)), 5);  % T-Statistic Given Probability ‘alpha’ & Degrees-Of-Freedom ‘v’
     otherwise
-        pt = NaN;
+        error('                    —> The third argument must be either ''one'', ''two'', or ''inv''.')
 end
 
 end
