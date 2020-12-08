@@ -11,52 +11,52 @@
 %   N - 3xM array of corresponding plane normals 
 
 function [P, N, H] = P_from_H(H)
-% Use the method of Faugeras for homography decomposition
+% Use the method of Faugeras to compute the rotations
 % Do the SVD of H
+if det(H) < 0
+    H = -H;
+end
 [U, S, V] = svd(H);
 
-% Check all 3 singular values are sufficiently different
+% Normalize the homography
 S = diag(S);
-if any(S([1 2]) ./ S([2 3]) < 1.00001)
-    N = zeros(3, 1);
-    P = eye(3, 4);
+H = H / S(2);
+
+% Check for no motion case
+if S(1) - S(3) < S(2) * 1e-10
+    N = [0; 0; 1];
+    P = [H zeros(3, 1)];
     return;
 end
-
-% Compute first set
-s = det(U) * det(V);
 V = V';
 S2 = S .* S;
 
-tp = sqrt((S2([1 2]) - S2([2 3])) ./ (S2(1) - S2(3)));
-tp = bsxfun(@times, tp([1 1 2]), [1 1 -1 -1; 0 0 0 0; -1 1 -1 1]);
-T = normalize(U * tp * (S(1) - S(3))); 
-
+% Compute first set
 ctheta = 1 ./ (S(2) * (S(1) + S(3)));
 stheta = sqrt((S2(1) - S2(2)) * (S2(2) - S2(3))) * ctheta;
 ctheta = ctheta * (S2(2) + S(1) * S(3));
-R1 = s * U * [ctheta 0 -stheta; 0 1 0; stheta 0 ctheta] * V;
-R2 = s * U * [ctheta 0 stheta; 0 1 0; -stheta 0 ctheta] * V;
-
-P = cat(3, [R1 T(:,1)], [R2 T(:,2)], [R2 T(:,3)], [R1 T(:,4)]);
+R1 = U * [ctheta 0 -stheta; 0 1 0; stheta 0 ctheta] * V;
+R2 = U * [ctheta 0 stheta; 0 1 0; -stheta 0 ctheta] * V;
+P = cat(3, R1, R2);
 
 % Compute second set
-tp(3,:) = -tp(3,:);
-T = normalize(U * tp * (S(1) + S(3)));
-
 ctheta = 1 ./ (S(2) * (S(1) - S(3)));
 stheta = sqrt((S2(1) - S2(2)) * (S2(2) - S2(3))) * ctheta;
 ctheta = ctheta * (S(1) * S(3) - S2(2));
-R1 = s * U * [ctheta 0 stheta; 0 -1 0; stheta 0 -ctheta] * V;
-R2 = s * U * [ctheta 0 -stheta; 0 -1 0; -stheta 0 -ctheta] * V;
+R1 = U * [ctheta 0 stheta; 0 -1 0; stheta 0 -ctheta] * V;
+R2 = U * [ctheta 0 -stheta; 0 -1 0; -stheta 0 -ctheta] * V;
+P2 = cat(3, R1, R2);
 
-P = cat(3, P, [R1 T(:,1)], [R2 T(:,2)], [R2 T(:,3)], [R1 T(:,4)]);
-if nargout < 2
-    return
-end
-% Compute the normal
-H = H / median(S);
-for a = 8:-1:1
-    N(:,a) = P(:,4,a) \ (H - P(:,1:3,a));
-end
+% Compute the normals and translations
+rank1 = cat(3, H - P, -H - P2);
+N = sum(rank1, 1);
+n = 1 ./ normd(N, 2);
+N = N .* n;
+T = sum(rank1 .* N, 2);
+N = squeeze(N);
+
+% Add negative normals
+P = cat(3, P, P2, P, P2);
+P(:,4,:) = cat(3, T, -T);
+N = [N, -N];
 end
