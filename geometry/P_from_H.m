@@ -55,8 +55,15 @@ N = N .* n;
 T = sum(rank1 .* N, 2);
 N = squeeze(N);
 
-% Add negative normals
-P = cat(3, P, P2, P, P2);
-P(:,4,:) = cat(3, T, -T);
-N = [N, -N];
+% Ensure the first camera is looking at the plane
+P = cat(3, P, P2);
+M = N(3,:) > 0;
+N(:,M) = -N(:,M);
+T(:,:,M) = -T(:,:,M);
+
+% Ensure the second camera is in front of the plane
+M = dot(reshape(tmult(P, -T, [1 0]), 3, []), N) < 1;
+P(:,4,:) = cat(3, T);
+P = P(:,:,M);
+N = N(:,M);
 end
