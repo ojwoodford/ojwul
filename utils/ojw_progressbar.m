@@ -1,14 +1,29 @@
 %OJW_PROGRESSBAR  Simple progress bar implementation
 %
-%   [this, retval] = ojw_progressbar(tag, proportion[, min_update_interval])
+%   [this, retval] = ojw_progressbar(tag, proportion, [total, [min_update_interval]])
 %
 % Starts, updates and closes a progress bar according to the proportion of
-% time left.
+% time left. There are two ways of using the function:
+%
+% % Simple (one line) but more overhead
+% for iter = 1:total
+%    % Code here
+%    ojw_progressbar('Bar 1', iter/total);
+% end
+%
+% % More complicated (two lines!) but less overhead
+% pb = ojw_progressbar('Bar 2', total);
+% for iter = 1:total
+%    % Code here
+%    update(pb, iter);
+% end
 %
 % IN:
 %   tag - String that appears on progress bar, specific to each function
 %         calling OJW_PROGRESSBAR.
-%   proportion - Proportion of time elapsed, between 0 and 1.
+%   proportion - Proportion of time elapsed, as a function of total (below).
+%   total - The value of proportion that will indicate completion. 
+%           Default: 1.
 %   min_update_interval - Minimum time (in seconds) between updates of the
 %                         progress bar. The value is kept while the bar is
 %                         alive. Default: 0.5.
