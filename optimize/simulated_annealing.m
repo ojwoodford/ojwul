@@ -41,7 +41,7 @@
 
 % $Id: simulated_annealing.m,v 1.9 2008/10/03 15:59:04 ojw Exp $
 
-function [X en] = simulated_annealing(X0, energy, T, varargin)
+function [X, en] = simulated_annealing(X0, energy, T, varargin)
 
 % Calculate initial energy
 en = zeros(numel(T)+1, 1);
@@ -96,7 +96,7 @@ for t = 1:nT
         % Sample from the conditional distribution
         if Tcurr == -Inf
             % Freeze
-            [s P] = min(enCon);
+            [s, P] = min(enCon);
         else
             % Draw from the distribution, raised by some temperature
             P = enCon * Tcurr;

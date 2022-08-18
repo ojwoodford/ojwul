@@ -12,7 +12,7 @@
 %         non-singleton dimension of X.
 %
 %OUT:
-%   Y - Normalize X.
+%   Y - Normalized X.
 
 function X = normalize(X, varargin)
 normalizer = normd(X, varargin{:});
