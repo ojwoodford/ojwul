@@ -1,6 +1,6 @@
 %EPIPOLAR_ERROR Compute the perpendicular error of points to epipolar lines
 %
-%   d = epipolar_error(RX, T, x)
+%   d = epipolar_error(RX, T, x, [c])
 %
 % Computes the point to line error (i.e. signed distance) of points in an
 % image to the corresponding epipolar lines.
@@ -10,13 +10,19 @@
 %        P(:,1:3).
 %   T - 3x1 or 3xN translation part of projection matrix P(:,4).
 %   x - 2xN corresponding points in the image(s).
+%   c - 2x2xN conditioning matrix to weight the error.
 %
 %OUT:
 %   d - 1xN output error.
 
-function d = epipolar_error(RX, T, x)
+function d = epipolar_error(RX, T, x, cov)
 T = proj(T);
-RX = normalize(bsxfun(@minus, proj(RX), T));
+x = x - T;
+RX = proj(RX) - T;
 RX = [RX(2,:); -RX(1,:)];
-d = sum(x .* RX, 1) - sum(bsxfun(@times, T, RX), 1);
+if nargin > 3
+    RX = tmult(inv22n(cov), RX);
+    x = tmult(cov, x, [1 0]);
+end
+d = dot(x, normalize(RX));
 end

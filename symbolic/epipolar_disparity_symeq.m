@@ -15,24 +15,29 @@
 %OUT:
 %   d - output disparity.
 
-function [d, d_] = epipolar_disparity_symeq(RX, T, x)
+function [d, d_] = epipolar_disparity_symeq(RX, T, x, cov)
 persistent eq tv
 proj = @(X) X(1:2) / X(3);
 if isempty(eq)
     % Compute the point to line distance equation once
-    tv = [sym('RX%d', [3 1]); sym('T%d', [3 1]); sym('x%d', [2 1])];
+    tv = [sym('RX%d', [3 1]); sym('T%d', [3 1]); sym('x%d', [2 1]); col(sym('cov%d', [2 2]))];
     assume(tv, 'real');
     syms d_ real
-    eq = proj(tv(1:3) + tv(4:6) * d_) - tv(7:8);
+    eq = (proj(tv(1:3) + tv(4:6) * d_) - tv(7:8));
     eq = simplify(solve(diff(eq' * eq, d_) == sym(0), d_), 'Steps', 10); % Minimize error
 end
-if nargin < 3
+if nargin < 4
     d = eq;
-    if nargout > 1
-        % Output the point to line squared distance
-        d_ = proj(tv(1:3) + tv(4:6) * eq) - tv(7:8);
-        d_ = simplify(d_' * d_);
+    if nargout > 1 || nargout == 0
+        % Output the point to line residual error
+        d_ = simplify((proj(tv(1:3) + tv(4:6) * eq) - tv(7:8)), 'Steps', 10);
+        d_ = simplify(sqrt(d_' * d_));
+        if nargout == 0
+            % Write a MATLAB function to compute the error
+            matlabFunction(d_, 'File', 'epipolar_error_symeq');
+        end
     end
 else
-    d = subs(eq, tv, [RX; T; x]);
+    d = subs(eq, tv, [RX; T; x; col(cov)]);
 end
+ 
