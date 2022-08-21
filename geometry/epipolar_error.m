@@ -21,8 +21,8 @@ x = x - T;
 RX = proj(RX) - T;
 RX = [RX(2,:); -RX(1,:)];
 if nargin > 3
-    RX = tmult(inv22n(cov), RX);
-    x = tmult(cov, x, [1 0]);
+    RX = tmult(inv22n(cov), RX, [1 0]);
+    x = tmult(cov, x);
 end
 d = dot(x, normalize(RX));
 end
