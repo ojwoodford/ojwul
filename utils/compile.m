@@ -278,7 +278,7 @@ if any(L == 1)
     flags = [flags ' ' cuda(debug)];
 end
 switch mexext
-    case {'mexglx', 'mexa64', 'mexmaci64'}
+    case {'mexglx', 'mexa64', 'mexmaci64', 'mexmaca64'}
         if ~debug
             compiler_options = [compiler_options ' -O3 -ffast-math -funroll-loops'];
         end
@@ -379,7 +379,11 @@ if ~debug
     elseif ismac()
         co = '-Xpreprocessor -fopenmp';
         str = get_user_path('OpenMP', @(p) exist([p 'include/omp.h'], 'file'), 1);
-        str = sprintf('-I"%sinclude" -L"%s/sys/os/maci64" -liomp5', str, matlabroot());
+        if isfolder(sprintf("%s/sys/os/maci64", matlabroot()))
+            str = sprintf('-I"%sinclude" -L"%s/sys/os/maci64" -liomp5', str, matlabroot());
+        else
+            str = sprintf('-I"%sinclude" -L"%s/sys/os/maca64" -lomp', str, matlabroot());
+        end
     else
         co = '-fopenmp';
     end

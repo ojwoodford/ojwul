@@ -14,6 +14,7 @@ xrepmat.m
 *.mexa64
 *.mexmaci32
 *.mexmaci64
+*.mexmaca64
 *.opensdf
 *.sdf
 *.suo
