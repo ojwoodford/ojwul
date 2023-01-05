@@ -282,7 +282,7 @@ switch mexext
         if ~debug
             compiler_options = [compiler_options ' -O3 -ffast-math -funroll-loops'];
         end
-        flags = sprintf('%s CXXOPTIMFLAGS="%s" LDCXXOPTIMFLAGS="%s" LDOPTIMFLAGS="%s"', flags, compiler_options, compiler_options, compiler_options);
+        flags = sprintf('%s CXXFLAGS="%s" CFLAGS="%s"', flags, compiler_options, compiler_options);
     case {'mexw32', 'mexw64'}
         flags = sprintf('%s COMPFLAGS="%s $COMPFLAGS"', flags, compiler_options);
 end
