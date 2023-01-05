@@ -412,7 +412,7 @@ _vl_cpuid (vl_int32* info, int function)
 }
 #endif
 
-#if defined(HAS_CPUID) & defined(VL_COMPILER_GNUC)
+#if defined(HAS_CPUID) & (defined(VL_COMPILER_GNUC) || defined(VL_COMPILER_CLANG))
 VL_INLINE void
 _vl_cpuid (vl_int32* info, int function)
 {
@@ -515,6 +515,9 @@ vl_static_configuration_to_string_copy ()
 #ifdef VL_ARCH_PPC
   "PPC"
 #endif
+#ifdef VL_ARCH_ARM
+  "ARM"
+#endif
   ", "
 #ifdef VL_ARCH_BIG_ENDIAN
   "big_endian"
@@ -552,6 +555,10 @@ snprintf(compilerString, 1024,
 #ifdef VL_COMPILER_GNUC
   "GNU C %d"
 #define v VL_COMPILER_GNUC
+#endif
+#ifdef VL_COMPILER_CLANG
+  "Clang %d"
+#define v VL_COMPILER_CLANG
 #endif
   " "
 #ifdef VL_COMPILER_LP64

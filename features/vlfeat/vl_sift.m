@@ -70,6 +70,10 @@
 
 function varargout = vl_sift(varargin)
 base = '../private/vlfeat';
-sourceList = {['-I' base], '-D__SSE2__', 'vl_sift.c', [base '/vl/sift.c'], [base '/vl/generic.c'], [base '/vl/host.c'], [base '/vl/imopv.c'], [base '/vl/imopv_sse2.c'], [base '/vl/random.c']}; % Cell array of source files
+if ismember(computer('arch'), {'maca64'})
+    sourceList = {['-I' base], 'vl_sift.c', [base '/vl/sift.c'], [base '/vl/generic.c'], [base '/vl/host.c'], [base '/vl/imopv.c'], [base '/vl/random.c']}; % Cell array of source files
+else
+    sourceList = {['-I' base], '-D__SSE2__', 'vl_sift.c', [base '/vl/sift.c'], [base '/vl/generic.c'], [base '/vl/host.c'], [base '/vl/imopv.c'], [base '/vl/imopv_sse2.c'], [base '/vl/random.c']}; % Cell array of source files
+end
 [varargout{1:nargout}] = compile(varargin{:}); % Compilation happens here
 return

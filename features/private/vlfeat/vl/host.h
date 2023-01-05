@@ -212,7 +212,13 @@ defined(__DOXYGEN__)
 
 /** @name Identifying the host compiler
  ** @{ */
-#if defined(__GNUC__) || defined(__DOXYGEN__)
+#if defined(__clang__) || defined(__DOXYGEN__)
+#define VL_COMPILER_CLANG  (__clang_major__ * 10000 \
++ __clang_minor__ * 100 \
++ __clang_patchlevel__)
+#endif
+
+#if (!defined(__clang__) && defined(__GNUC__)) || defined(__DOXYGEN__)
 # if defined(__GNUC_PATCHLEVEL__)
 #  define VL_COMPILER_GNUC (__GNUC__ * 10000 \
 + __GNUC_MINOR__ * 100 \
@@ -266,12 +272,21 @@ defined(__DOXYGEN__)
     defined(__DOXYGEN__)
 #define VL_ARCH_IA64
 #endif
+
+#if defined(__arm__)     || \
+    defined(__aarch64__) || \
+    defined(__DOXYGEN__)
+#define VL_ARCH_ARM
+#endif
+
+#if defined(VL_ARCH_ARM) && !defined(__DOXYGEN__)
+#define VL_DISABLE_SSE2
+#endif
 /** @} */
 
 /** @name Identifying the host data model
  ** @{ */
 #if defined(__LLP64__) || \
-    defined(__LLP64)   || \
     defined(__LLP64)   || \
     (defined(VL_COMPILER_MSC) & defined(VL_OS_WIN64)) || \
     (defined(VL_COMPILER_LCC) & defined(VL_OS_WIN64)) || \
@@ -280,7 +295,6 @@ defined(__DOXYGEN__)
 #endif
 
 #if defined(__LP64__) || \
-    defined(__LP64)   || \
     defined(__LP64)   || \
     (defined(VL_OS_MACOSX) & defined(VL_ARCH_IA64)) || \
     defined(__DOXYGEN__)
@@ -299,6 +313,7 @@ defined(__DOXYGEN__)
     defined(VL_ARCH_IX86)      || \
     defined(VL_ARCH_IA64)      || \
     defined(VL_ARCH_X64)       || \
+    defined(VL_ARCH_ARM)       || \
     defined(__DOXYGEN__)
 #define VL_ARCH_LITTLE_ENDIAN
 #endif
@@ -344,7 +359,7 @@ VL_INLINE float fabsf(float x) { return (float) fabs((double) x) ; }
 #  endif
 #endif
 
-#if defined(VL_COMPILER_GNUC) & ! defined(__DOXYGEN__)
+#if (defined(VL_COMPILER_GNUC) || defined(VL_COMPILER_CLANG)) & ! defined(__DOXYGEN__)
 #  define VL_UNUSED __attribute__((unused))
 #  define VL_INLINE static __inline__
 #  ifdef VL_BUILD_DLL

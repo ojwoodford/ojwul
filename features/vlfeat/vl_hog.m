@@ -51,6 +51,10 @@
 
 function varargout = vl_hog(varargin)
 base = '../private/vlfeat';
-sourceList = {['-I' base], '-D__SSE2__', 'vl_hog.c', [base '/vl/hog.c'], [base '/vl/generic.c'], [base '/vl/host.c'], [base '/vl/imopv.c'], [base '/vl/imopv_sse2.c'], [base '/vl/random.c']}; % Cell array of source files
+if ismember(computer('arch'), {'maca64'})
+    sourceList = {['-I' base], 'vl_hog.c', [base '/vl/hog.c'], [base '/vl/generic.c'], [base '/vl/host.c'], [base '/vl/imopv.c'], [base '/vl/random.c']}; % Cell array of source files
+else
+    sourceList = {['-I' base], '-D__SSE2__', 'vl_hog.c', [base '/vl/hog.c'], [base '/vl/generic.c'], [base '/vl/host.c'], [base '/vl/imopv.c'], [base '/vl/imopv_sse2.c'], [base '/vl/random.c']}; % Cell array of source files
+end
 [varargout{1:nargout}] = compile(varargin{:}); % Compilation happens here
 return
