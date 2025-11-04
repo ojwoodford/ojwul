@@ -73,6 +73,9 @@ if ischar(filter)
         case 'sobel'
             g = [1 2 1];
             gp = [1 0 -1];
+        case 'bickley'
+            g = [1 4 1];
+            gp = [1 0 -1];
         case 'simoncelli'
             % Use 7-tap filter from:
             % Farid, H. and Simoncelli, E. "Differentiation of Discrete Multi-Dimensional Signals"
