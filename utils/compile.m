@@ -283,6 +283,9 @@ switch mexext
             compiler_options = [compiler_options ' -O3 -ffast-math -funroll-loops'];
         end
         flags = sprintf('%s CXXFLAGS="%s" CFLAGS="%s"', flags, compiler_options, compiler_options);
+        if isequal(mexext, 'mexmaca64')
+            flags = [flags ' LDFLAGS="$LDFLAGS -ld_classic"'];
+        end
     case {'mexw32', 'mexw64'}
         flags = sprintf('%s COMPFLAGS="%s $COMPFLAGS"', flags, compiler_options);
 end
@@ -382,7 +385,7 @@ if ~debug
         if isfolder(sprintf("%s/sys/os/maci64", matlabroot()))
             str = sprintf('-I"%sinclude" -L"%s/sys/os/maci64" -liomp5', str, matlabroot());
         else
-            str = sprintf('-I"%sinclude" -L"%s/sys/os/maca64" -lomp', str, matlabroot());
+            str = sprintf('-I"%sinclude" -L"%slib" -lomp', str, str);
         end
     else
         co = '-fopenmp';
