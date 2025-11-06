@@ -14,7 +14,7 @@ function download_gdrive_file(fname, fid)
 session = restful_websession('https://drive.google.com/uc');
 response = session.download(fname, 'export', 'download', 'id', fid);
 assert(response.StatusCode == matlab.net.http.StatusCode.OK, 'Connection failed');
-% Handle no virus check confirmation (for large files)
+% Handle the virus check confirmation (for large files)
 try
     assert(isequal(response.Body.ContentType.Type, "text") && isequal(response.Body.ContentType.Subtype, "html"))
 catch
