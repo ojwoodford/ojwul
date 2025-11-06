@@ -1,11 +1,25 @@
+%WEB_PROGRESSBAR A progress bar for web downloads
+% 
+% This class works with MATLAB's RESTful http interface to provide a
+% visual progress bar showing the progress of uploads and downloads.
+%    
+%Example:
+%   import matlab.net.http.*
+%   opt = HTTPOptions('ProgressMonitorFcn', @web_progressbar, 'UseProgressMonitor', true);
+%   response = send(RequestMessage(), 'https://bbc.com/news', opt)
+%
+%   See also MATLAB.NET.HTTP.PROGRESSMONITOR, OJW_PROGRESSBAR.
+
+% Copyright (C) Oliver Woodford 2025
+
 classdef web_progressbar < matlab.net.http.ProgressMonitor
     properties
-        ProgHandle
-        Value uint64
-        Direction matlab.net.http.MessageType
-        oldDirection matlab.net.http.MessageType
-        oldValue uint64
-        oldMax uint64
+        PBH
+        Value
+        Direction
+        oldDirection
+        oldValue
+        oldMax
     end
     
     methods
@@ -34,39 +48,38 @@ classdef web_progressbar < matlab.net.http.ProgressMonitor
             if isempty(this.Value) || isempty(this.Max) || isempty(this.Direction)
                 close(this);
                 this.oldValue = 0;
-                this.oldMax = [];
-                this.oldDirection = [];
                 return;
             end
-            if ~isempty(this.ProgHandle) && (this.Value < this.oldValue || ~isequal(this.Max, this.oldMax) || ~isequal(this.Direction, this.oldDirection))
+            if ~isempty(this.PBH) && (this.Value < this.oldValue || ~isequal(this.Max, this.oldMax) || ~isequal(this.Direction, this.oldDirection))
                 close(this);
             end
             this.oldValue = this.Value;
             this.oldMax = this.Max;
             this.oldDirection = this.Direction;
             if this.Max < 1e5
-                % Do not display for small transfers
+                % Do not display for transfers below 100KB
                 return;
             end
 
             % Create or update the progress bar
-            if isempty(this.ProgHandle)
+            if isempty(this.PBH)
                 if this.Direction == MessageType.Request
                     msg = 'Uploading...';
                 else
                     msg = 'Downloading...';
                 end
-                this.ProgHandle = ojw_progressbar(msg, this.Value, this.Max, 0.2);
+                this.PBH = ojw_progressbar(msg, this.Value, this.Max, 0.2);
             else
-                update(this.ProgHandle, this.Value);
+                update(this.PBH, this.Value);
             end
         end
 
         function close(this)
-            if ~isempty(this.ProgHandle)
-                close(this.ProgHandle);
-                this.ProgHandle = [];
+            if isempty(this.PBH)
+                return;
             end
+            close(this.PBH);
+            this.PBH = [];
         end
     end
 end

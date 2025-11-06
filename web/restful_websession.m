@@ -1,3 +1,17 @@
+%RESTFUL_WEBSESSION Maintains cookies across requests within a web session
+% 
+% This class provides a RESTful API for accessing web resources, that
+% maintains cookies across requests. This can be useful for sessions that
+% require authentication. It is built atop MATLAB's RESTful http interface.
+%    
+%Example:
+%   h = restful_websession('https://bbc.com/news');
+%   response = h.get();
+%
+%   See also MATLAB.NET.HTTP.REQUESTMESSAGE.
+
+% Copyright (C) Oliver Woodford 2025
+
 classdef restful_websession < handle
     properties (Hidden = true, SetAccess = protected)
         uri;     % matlab.net.URI
