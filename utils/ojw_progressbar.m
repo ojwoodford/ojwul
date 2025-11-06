@@ -69,7 +69,7 @@ classdef ojw_progressbar < handle
                 end
                 total = double(total);
             else
-                total = 1; % Default total proportion
+                total = 1.0; % Default total proportion
             end
             if nargin > 3
                 if ~isscalar(min_update_interval) || min_update_interval < 0
@@ -147,15 +147,8 @@ classdef ojw_progressbar < handle
             % Check for an end to the progress bar
             retval = 0;
             if proportion >= this.total
-                % Close the progress bar
-                if this.text_version
-                    fprintf([repmat(' ', 1, 200) repmat('\b', 1, 200)]);
-                else
-                    close(this.bar);
-                    drawnow();
-                end
-                ojw_progressbar.GetSetPersistent(this.tag, []);
                 this.prop = this.total;
+                close(this);
                 return;
             end
             
@@ -216,6 +209,18 @@ classdef ojw_progressbar < handle
                 end
             end
             drawnow();
+        end
+
+        function close(this)
+            % Remove references to this
+            ojw_progressbar.GetSetPersistent(this.tag, []);
+            % Close the progress bar
+            if this.text_version
+                fprintf([repmat(' ', 1, 200) repmat('\b', 1, 200)]);
+            elseif ishandle(this.bar)
+                close(this.bar);
+                drawnow();
+            end
         end
     end
     methods (Static = true, Access = private)
