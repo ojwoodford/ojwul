@@ -31,6 +31,6 @@
 %       [shiftdim(Vx, -1); shiftdim(Vy, -1)].
 
 function varargout = ojw_interp2(varargin)
-sourceList = {'ojw_interp2.cpp', '-Xopenmp', '-Cstd=c++11'}; % Cell array of source files
+sourceList = {'ojw_interp2.cpp', '-Cstd=c++11'}; % Cell array of source files
 [varargout{1:nargout}] = compile(varargin{:}); % Compilation happens here
 end
