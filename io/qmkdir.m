@@ -3,15 +3,14 @@
 %   status = qmkdir(dname)
 %
 % Quietly make a directory, if it doesn't exist. Do not throw a warning if
-% it doesn't exist, or an error if it cannot be created.
+% it exists already, or an error if it cannot be created.
 %
 %IN:
 %   dname - String containing the name or path of the directory to make.
 %OUT:
 %   status - 1 if the directory exists or was created, otherwise zero.
 %
-%
-%   See also MKDIR.
+% See also MKDIR.
 
 % Copyright Oliver Woodford 2025
 
