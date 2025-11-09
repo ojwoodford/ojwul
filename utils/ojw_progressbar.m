@@ -201,11 +201,15 @@ classdef ojw_progressbar < handle
                 fprintf([str repmat('\b', 1, numel(str))]);
             else
                 % Graphics version
-                if ishandle(this.bar)
+                try
+                    assert(ishandle(this.bar));
                     waitbar(proportion, this.bar, newtitle);
-                else
-                    % Create the waitbar
+                catch
+                    % Something went wrong. Create the waitbar again, being
+                    % sure not to change the current figure
+                    prevfig = get(groot, 'CurrentFigure');
                     this.bar = waitbar(proportion, newtitle, 'Name', this.tag_title);
+                    set(groot, 'CurrentFigure', prevfig);
                 end
             end
             drawnow();
