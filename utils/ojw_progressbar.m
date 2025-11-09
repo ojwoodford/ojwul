@@ -18,6 +18,14 @@
 %    update(pb, iter);
 % end
 %
+% Progress bars can either be graphical, in a separate Waitbar (Figure)
+% window, or text-based, in the Command Window. They default to graphical
+% if a Java desktop is being used, otherwise are text-based. They can be
+% forced to be text-based globally, across an entire MATLAB session, by
+% calling:
+%
+%   ojw_progressbar('-text');
+%
 % IN:
 %   tag - String that appears on progress bar, specific to each function
 %         calling OJW_PROGRESSBAR.
@@ -55,7 +63,9 @@ classdef ojw_progressbar < handle
         function [this, retval] = ojw_progressbar(tag, proportion, total, min_update_interval)
             % Check the input arguments
             if nargin < 2
-                error('At least 2 input arguments expected');
+                assert(isequal(tag, '-text') && nargout == 0, 'At least 2 input arguments expected');
+                GetSetPersistent('text_version', true);
+                return;
             end
             if ~ischar(tag)
                 error('First argument should be a string');
