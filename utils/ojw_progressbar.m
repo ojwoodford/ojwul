@@ -64,7 +64,7 @@ classdef ojw_progressbar < handle
             % Check the input arguments
             if nargin < 2
                 assert(isequal(tag, '-text') && nargout == 0, 'At least 2 input arguments expected');
-                GetSetPersistent('text_version', true);
+                ojw_progressbar.GetSetPersistent('text_version', true);
                 return;
             end
             if ~ischar(tag)
