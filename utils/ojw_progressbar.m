@@ -58,6 +58,7 @@ classdef ojw_progressbar < handle
         tag_title;
         total;
         inverse_total;
+        last_str_len;
     end
     methods
         function [this, retval] = ojw_progressbar(tag, proportion, total, min_update_interval)
@@ -118,6 +119,7 @@ classdef ojw_progressbar < handle
                 this.tag = tag;
                 this.total = total;
                 this.inverse_total = 1 / total;
+                this.last_str_len = 0;
                 this.text_version = ojw_progressbar.GetSetPersistent('text_version');
                 
                 % Update our global variable with the changes to this tag
@@ -208,7 +210,8 @@ classdef ojw_progressbar < handle
                 % Text version
                 proportion = floor(proportion * 50);
                 str = sprintf('  %s |%s%s| %s', this.tag_title, repmat('#', 1, proportion), repmat(' ', 1, 50 - proportion), newtitle);
-                fprintf([str repmat('\b', 1, numel(str))]);
+                fprintf([repmat('\b', 1, this.last_str_len) str]);
+                this.last_str_len = numel(str);
             else
                 % Graphics version
                 try
@@ -230,7 +233,8 @@ classdef ojw_progressbar < handle
             ojw_progressbar.GetSetPersistent(this.tag, []);
             % Close the progress bar
             if this.text_version
-                fprintf([repmat(' ', 1, 200) repmat('\b', 1, 200)]);
+                fprintf(repmat('\b', 1, this.last_str_len));
+                this.last_str_len = 0;
             elseif ishandle(this.bar)
                 close(this.bar);
                 drawnow();
@@ -271,3 +275,4 @@ else
     str = sprintf('%2.1fs', s);
 end
 end
+ix 
